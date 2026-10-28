@@ -1,0 +1,100 @@
+"""Read / write SwissBioisostere-compatible fragment CSV.
+
+Official format (job output)::
+
+    Query fragment: [*:1]c1cc2ccccc2o1
+    "Candidate Fragments","Frequency","# Better","# Similar","# Worse","Δ logP","Δ tPSA","Δ MW"
+    "[*:1]c1cc2ccccc2s1","213 (#1)","39","138","36","0.93","-13.14","16.07"
+    ...
+
+Column headers contain a non-breaking space (\\xa0) in the official export, e.g.
+``Δ\\xa0logP``.  We normalise it to a regular space internally and re-emit it on
+write so downstream tools (e.g. the CReM notebook's ``SwissBioisostereo_filter``)
+read our output unchanged.
+"""
+from __future__ import annotations
+
+import pandas as pd
+
+CANON_COLS = [
+    "Candidate Fragments",
+    "Frequency",
+    "# Better",
+    "# Similar",
+    "# Worse",
+    "Δ logP",
+    "Δ tPSA",
+    "Δ MW",
+]
+
+# official headers use NBSP
+_OFFICIAL_COLS = [c.replace(" ", "\xa0") for c in CANON_COLS]
+_NBSP = "\xa0"
+
+
+def parse_query_line(path: str) -> str:
+    with open(path, encoding="utf-8", errors="replace") as f:
+        first = f.readline()
+    # "Query fragment: <smiles>"
+    return first.split(":", 1)[1].strip() if ":" in first else ""
+
+
+def read_sb_csv(path: str) -> tuple[str, pd.DataFrame]:
+    """Return (query_fragment, dataframe) with normalised column names."""
+    query = parse_query_line(path)
+    df = pd.read_csv(path, sep=None, engine="python", skiprows=1)
+    df.columns = [c.replace(_NBSP, " ").strip() for c in df.columns]
+    # tolerate minor header variations
+    rename = {}
+    for c in df.columns:
+        lc = c.lower()
+        if "candidate" in lc:
+            rename[c] = "Candidate Fragments"
+        elif lc.startswith("freq"):
+            rename[c] = "Frequency"
+        elif "better" in lc:
+            rename[c] = "# Better"
+        elif "similar" in lc:
+            rename[c] = "# Similar"
+        elif "worse" in lc:
+            rename[c] = "# Worse"
+        elif "logp" in lc:
+            rename[c] = "Δ logP"
+        elif "tpsa" in lc:
+            rename[c] = "Δ tPSA"
+        elif "mw" in lc:
+            rename[c] = "Δ MW"
+    df = df.rename(columns=rename)
+    return query, df
+
+
+def _fmt_freq(v) -> str:
+    """Frequency column: official is like '213 (#1)'.  Accept int or str."""
+    if v is None:
+        return ""
+    if isinstance(v, str):
+        return v
+    try:
+        return f"{int(v)}"
+    except Exception:
+        return str(v)
+
+
+def write_sb_csv(df: pd.DataFrame, path: str, query_fragment: str) -> None:
+    """Write a dataframe in official SwissBioisostere CSV layout (NBSP headers)."""
+    missing = [c for c in CANON_COLS if c not in df.columns]
+    if missing:
+        raise ValueError(f"missing columns: {missing}; have {list(df.columns)}")
+    out = df[CANON_COLS].copy()
+    out["Frequency"] = out["Frequency"].map(_fmt_freq)
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        f.write(f"Query fragment: {query_fragment}\n")
+        hdr = ",".join('"' + c.replace(" ", _NBSP) + '"' for c in CANON_COLS)
+        f.write(hdr + "\n")
+        for _, row in out.iterrows():
+            cells = []
+            for c in CANON_COLS:
+                val = row[c]
+                s = "" if pd.isna(val) else str(val)
+                cells.append('"' + s.replace('"', '""') + '"')
+            f.write(",".join(cells) + "\n")
