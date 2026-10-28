@@ -125,3 +125,17 @@ def vina():
         return paths.vina_exe()
     except FileNotFoundError:
         pytest.skip("AutoDock Vina not installed (set ISOGROW_VINA or run scripts/data/get_vina.py)")
+
+
+@pytest.fixture(scope="session")
+def kcombu():
+    """fkcombu command (path or WSL command string), or skip."""
+    from isogrow import paths
+
+    try:
+        return paths.kcombu_exe()
+    except FileNotFoundError:
+        pytest.skip(
+            "fkcombu not installed (conda install -c michellab fkcombu, "
+            "then set ISOGROW_KCOMBU)"
+        )

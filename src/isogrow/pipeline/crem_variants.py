@@ -45,8 +45,13 @@ def crem_mutate(
     max_replacements: int | None = None,
     replace_cycles: bool = False,
     protect_H: bool = True,
+    seed: int | None = None,
 ) -> list[str]:
-    """Run CReM mutate; returns SMILES list with the lead first (mirrors notebook)."""
+    """Run CReM mutate; returns SMILES list with the lead first (mirrors notebook).
+
+    CReM samples replacements, so without ``seed`` two runs of the same config give
+    different variant sets. Set it (config key ``crem.seed``) for reproducibility.
+    """
     mol = Chem.MolFromSmiles(lead_smiles)
     if mol is None:
         return []
@@ -58,6 +63,7 @@ def crem_mutate(
                 for nb in atom.GetNeighbors():
                     if nb.GetIdx() in protected:
                         protected.add(atom.GetIdx())
+    extra = {"seed": seed} if seed is not None else {}
     out = list(
         mutate_mol(
             mol,
@@ -70,6 +76,7 @@ def crem_mutate(
             max_inc=max_inc,
             max_replacements=max_replacements,
             replace_cycles=replace_cycles,
+            **extra,
         )
     )
     return [Chem.MolToSmiles(Chem.RemoveHs(mol))] + out

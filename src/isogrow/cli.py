@@ -39,6 +39,11 @@ def cmd_doctor(args: argparse.Namespace) -> int:
             print(f"{label:<15} : {resolver()}")
         except FileNotFoundError as exc:
             print(f"{label:<15} : not found — {exc}")
+    try:
+        print(f"{'kcombu':<15} : {paths.kcombu_exe()}")
+    except FileNotFoundError:
+        print(f"{'kcombu':<15} : not found (optional; only needed for "
+              f"align_backend='kcombu')")
 
     data = paths.data_dir()
     print(f"ISOGROW_DATA   : {data} ({'exists' if data.is_dir() else 'missing'})")
@@ -160,6 +165,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         "max_variants": args.max_variants,
         "variants_per_candidate": args.variants_per_candidate,
         "docking_backend": args.docking_backend,
+        "align_backend": args.align_backend,
     }
     cfg = cfgmod.load_config(args.config, overrides=overrides)
     res = run(cfg)
@@ -240,6 +246,8 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--max-variants", type=int, default=None)
     r.add_argument("--variants-per-candidate", type=int, default=None)
     r.add_argument("--docking-backend", default=None)
+    r.add_argument("--align-backend", choices=["mcs", "kcombu"], default=None,
+                   help="mcs = rigid MCS fit (default); kcombu = flexible fit")
     r.set_defaults(func=cmd_run)
 
     m = sub.add_parser("benchmark", help="compare against an official export")

@@ -4,9 +4,18 @@
   "source": "local",
   "query": "[*:1]c1cc2ccccc2o1",
   "mmpdb_path": "${ISOGROW_DATA}/mmpdb/chembl.mmpdb",
-  "logp_range": [-10, 10],
-  "tpsa_range": [-300, 300],
-  "mw_range": [-200, 80],
+  "logp_range": [
+    -10,
+    10
+  ],
+  "tpsa_range": [
+    -300,
+    300
+  ],
+  "mw_range": [
+    -200,
+    80
+  ],
   "max_candidates": 5,
   "variants_per_candidate": 6,
   "crem_db": "${ISOGROW_DATA}/crem/chembl.db",
@@ -18,11 +27,18 @@
     "max_inc": 2,
     "replace_cycles": false,
     "max_replacements": 20,
-    "protect_H": true
+    "protect_H": true,
+    "seed": 42
   },
   "ref_ligand": "tests/data/reference_ligand.sdf",
   "receptor": "tests/data/receptor.pdbqt",
   "box_padding": 8.0,
+  "align_backend": "mcs",
+  "kcombu": {
+    "rigid": false,
+    "nini": 1,
+    "exe": null
+  },
   "docking_backend": "vina",
   "dock": {
     "exhaustiveness": 4,

@@ -92,9 +92,28 @@ No missing, no extra molecules. Parameters match the notebook exactly: `radius=2
 | Heavy atoms identical across all three formats | **20/20** |
 | RDKit MCS alignment RMSD to the reference pose | **0.06 Å** (0.05–0.07) |
 
-So replacing KCOMBU (C++) with RDKit's MCS alignment, and py2 AutoDockTools with Meeko, does
-not alter molecular identity. Pose geometry may still differ slightly from KCOMBU output; that
-is a geometry difference, not a chemistry difference.
+So both alignment paths — RDKit MCS (rigid) and KCOMBU (flexible) — plus Meeko instead of py2
+AutoDockTools preserve molecular identity. Pose geometry differs, which is a geometry
+difference, not a chemistry difference.
+
+### Does the alignment backend matter for the final ranking?
+
+Same six molecules, both backends, identical receptor/box/parameters:
+
+| Backend | Vina (kcal/mol) | KCOMBU `rmsd_match` | MCS-atom RMSD |
+|---|---|---|---|
+| `mcs` (rigid) | −4.97 −5.03 −4.71 −3.92 −4.17 −4.18 | — | 0.05–0.06 Å |
+| `kcombu` (flexible, `-nini 1`) | −4.98 −5.01 −4.75 −3.98 −4.18 −4.15 | 0.16 Å (first molecule) | 0.12–3.49 Å |
+
+Two conclusions:
+
+* **Scores move by ≤ 0.06 kcal/mol.** Vina re-optimises the pose inside the box, so a better or
+  worse starting conformer barely changes the result. For this workflow the cheap rigid fit is
+  adequate; KCOMBU earns its cost when the downstream method cannot re-optimise (rigid docking,
+  pharmacophore overlays, 3D-QSAR).
+* **Do not compare RMSD across backends.** KCOMBU fits *its own* 2D-MCS correspondence to
+  0.16 Å; measured on an RDKit MCS correspondence the same pose looks like 2–3 Å off, because
+  the two atom mappings differ. Compare backends by score (or by a shared, explicit mapping).
 
 ## 4 · Activity layer spot checks (EGFR sample, 5000 IC50 records)
 

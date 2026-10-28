@@ -130,6 +130,35 @@ export straight into the same downstream stages. Outputs are written per stage
 Variant budget is allocated **per candidate** (`variants_per_candidate`) rather than as a
 global slice, so the ranking does not collapse onto the single most frequent replacement.
 
+## Alignment backends
+
+Stage D can use either of two engines (`align_backend` in the config, or
+`--align-backend` on `isogrow run`):
+
+| Backend | What it does | Needs |
+|---|---|---|
+| `mcs` (default) | rigid-body least-squares on the RDKit MCS — rotates/translates, never changes internal geometry | nothing (pure Python) |
+| `kcombu` | KCOMBU's `fkcombu`: 2D-MCS correspondence, then **flexible** fit — torsion angles stamped from the reference and refined by steepest descent over `nini` initial conformers; can also avoid the receptor (`-P`) | `fkcombu` binary (Linux/macOS only) |
+
+```bash
+conda install -c michellab fkcombu            # Linux / macOS
+export ISOGROW_KCOMBU=/path/to/fkcombu        # or a WSL command string, see docs/data.md
+isogrow run --config config/my_run.json --align-backend kcombu
+```
+
+On Windows, drive a WSL install with a command string:
+
+```bash
+set ISOGROW_KCOMBU=wsl.exe -d Ubuntu -- /home/<user>/miniforge3/bin/fkcombu
+```
+
+**Measured difference (same 6 molecules, YEATS2 case):** docking scores move by at most
+**0.06 kcal/mol** between backends (−4.98…−3.98 vs −5.03…−3.92 kcal/mol), because Vina re-optimises
+the pose anyway. KCOMBU reports `rmsd_match = 0.16 Å` over *its* correspondence; a Rigid/MCS
+RMSD is not comparable across backends since the atom correspondences differ. Use KCOMBU when
+you need pocket-compatible conformers (rigid docking, pharmacophores) rather than as a drop-in
+accuracy upgrade.
+
 ## Benchmark against the official service
 
 Query `[*:1]c1cc2ccccc2o1` (benzofuran), 50k-compound database:
@@ -158,9 +187,9 @@ variant sets matched **100 %** (50/50 and 53/53 molecules), and the RDKit alignm
   few inconsistent official rows wreck the mean. `report.json` reports both.
 * **The success score is a proxy** — net-improvement rate × log(pairs). SwissBioisostere also
   weights target/target-class/Murcko-scaffold diversity, which needs the full activity tables.
-* **KCOMBU is replaced by RDKit MCS alignment**, and py2 AutoDockTools by Meeko. Molecule
-  identity is preserved (heavy-atom counts verified); pose geometry can differ slightly from
-  the original KCOMBU output.
+* **Alignment is pluggable**: `mcs` (rigid, default) or `kcombu` (flexible, the tool the
+  original notebook used). py2 AutoDockTools is replaced by Meeko. Molecule identity is
+  preserved in every path (heavy-atom counts verified).
 * **Docking scores are engine specific.** Vina is the default; Uni-Dock and external engines
   plug in through `isogrow.pipeline.dock.BACKENDS`.
 

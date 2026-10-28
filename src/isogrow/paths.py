@@ -24,6 +24,7 @@ from pathlib import Path
 ENV_DATA = "ISOGROW_DATA"
 ENV_VINA = "ISOGROW_VINA"
 ENV_MMPDB = "ISOGROW_MMPDB"
+ENV_KCOMBU = "ISOGROW_KCOMBU"
 
 
 def repo_root() -> Path:
@@ -97,6 +98,35 @@ def mmpdb_exe(explicit: str | None = None) -> str:
             "`pip install \"mmpdb @ git+https://github.com/rdkit/mmpdb.git\"` "
             "(the PyPI package of the same name does not provide the module)."
         ),
+    )
+
+
+def kcombu_exe(explicit: str | None = None) -> str:
+    """Locate ``fkcombu`` (KCOMBU's flexible alignment tool).
+
+    Linux/macOS only — there is no Windows build. Install with
+    ``conda install -c michellab fkcombu`` or compile from
+    https://pdbj.org/kcombu/download_src.html.
+
+    The value may also be a **command string**, which is how you drive a binary
+    installed inside WSL from Windows::
+
+        set ISOGROW_KCOMBU=wsl.exe -d Ubuntu -- /home/me/miniforge3/bin/fkcombu
+    """
+    if explicit:
+        return explicit
+    env = os.environ.get(ENV_KCOMBU)
+    if env:
+        return env
+    found = shutil.which("fkcombu")
+    if found:
+        return found
+    raise FileNotFoundError(
+        "fkcombu (KCOMBU) was not found. It is Linux/macOS only: install with "
+        "`conda install -c michellab fkcombu` or build from "
+        "https://pdbj.org/kcombu/download_src.html, then set $ISOGROW_KCOMBU. "
+        "On Windows, point it at WSL: ISOGROW_KCOMBU=\"wsl.exe -d Ubuntu -- "
+        "/home/<user>/miniforge3/bin/fkcombu\"."
     )
 
 

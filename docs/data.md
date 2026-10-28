@@ -10,6 +10,28 @@ Nothing in this table is committed to the repository. Everything lands in
 | Activity sample (REST) | ~300 KB | `python scripts/data/fetch_activities.py --target CHEMBL203` | #Better/#Similar/#Worse, ΔpChEMBL |
 | CReM fragment DB | ~2.5 GB | `python scripts/data/get_crem_db.py --url …` or `cremdb_create` | stage B variants |
 | AutoDock Vina | ~1 MB | `python scripts/data/get_vina.py` | stage F docking |
+| fkcombu (KCOMBU) | ~1.7 MB | `conda install -c michellab fkcombu` | stage D flexible alignment |
+
+## KCOMBU / fkcombu
+
+Only needed when `align_backend` is `kcombu`; the default `mcs` backend has no external
+dependency. There is **no Windows build** — it is a C program for Linux/macOS:
+
+```bash
+conda install -c michellab fkcombu          # or build from pdbj.org/kcombu/download_src.html
+export ISOGROW_KCOMBU="$(which fkcombu)"
+isogrow doctor                              # should print the resolved path
+```
+
+On Windows, install it inside WSL and point the variable at a **command string**; the pipeline
+translates `D:\...` paths to `/mnt/d/...` for you:
+
+```bat
+set ISOGROW_KCOMBU=wsl.exe -d Ubuntu -- /home/<user>/miniforge3/bin/fkcombu
+```
+
+Cost: one process per molecule (roughly 0.2–1 s), so 10k molecules is a 30–90 min step; run it
+on the molecules you actually need rather than on a whole screening deck.
 
 ## Build sizes and resources
 

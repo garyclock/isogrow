@@ -49,8 +49,14 @@ def run(config: dict) -> dict:
     # 3. 3D embed
     sdf = embed3d.batch_embed(smis, os.path.join(out, "2_3d"))
 
-    # 4. align to reference ligand
-    aligned = align3d.batch_align(sdf, config["ref_ligand"], os.path.join(out, "3_aligned"))
+    # 4. align to reference ligand (backend: "mcs" rigid, or "kcombu" flexible)
+    aligned = align3d.batch_align(
+        sdf,
+        config["ref_ligand"],
+        os.path.join(out, "3_aligned"),
+        backend=config.get("align_backend", "mcs"),
+        **config.get("kcombu", {}),
+    )
 
     # 5. PDBQT
     pdbqts = pdb2pdbqt.batch_pdbqt(aligned, os.path.join(out, "4_pdbqt"))
