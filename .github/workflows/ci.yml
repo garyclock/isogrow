@@ -23,7 +23,7 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
 
-      - name: Install
+      - name: Install package
         run: |
           python -m pip install --upgrade pip
           # mmpdb is installed from git: the PyPI package of that name ships no module.
@@ -32,17 +32,28 @@ jobs:
       - name: Lint
         run: ruff check .
 
-      - name: Environment report
-        continue-on-error: true        # Vina is optional; docking tests skip without it
-        run: isogrow doctor
+      # The pipeline defaults to KCOMBU's flexible alignment, so the binary is part
+      # of the tested configuration. There is no pip/apt package: fetch the conda
+      # artifact and unpack it (it is a single static executable).
+      - name: Install fkcombu (KCOMBU)
+        run: |
+          set -euo pipefail
+          REL=$(curl -sL https://conda.anaconda.org/michellab/linux-64/repodata.json \
+                | python -c 'import json,sys; d=json.load(sys.stdin); print(sorted(k for k in d["packages"] if k.startswith("fkcombu"))[-1])')
+          echo "fkcombu package: $REL"
+          curl -sL -o /tmp/fkcombu.pkg "https://conda.anaconda.org/michellab/linux-64/$REL"
+          mkdir -p "$HOME/.local/fkcombu"
+          tar -xjf /tmp/fkcombu.pkg -C "$HOME/.local/fkcombu"
+          echo "$HOME/.local/fkcombu/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/fkcombu/bin/fkcombu" -h | head -3
 
-      - name: Tests (fast suite)
-        run: pytest -m "not slow"
-
-      - name: Slow tests with a docking engine
-        if: vars.RUN_SLOW_TESTS == 'true'
+      - name: Install Vina
         run: |
           python scripts/data/get_vina.py
-          pytest -m slow
-        env:
-          ISOGROW_VINA: ${{ github.workspace }}/data/bin/vina
+          echo "$GITHUB_WORKSPACE/data/bin" >> "$GITHUB_PATH"
+
+      - name: Environment report
+        run: isogrow doctor
+
+      - name: Tests (including docking and KCOMBU alignment)
+        run: pytest
