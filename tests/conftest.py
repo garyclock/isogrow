@@ -116,6 +116,17 @@ def reference_ligand() -> Path:
     return DATA / "reference_ligand.sdf"
 
 
+def _skip_or_fail(reason: str) -> None:
+    """Skip locally, fail in CI.
+
+    CI installs fkcombu and Vina on purpose: if a tool is missing there, the run must
+    go red instead of quietly skipping the tests that exercise the default backend.
+    """
+    if os.environ.get("ISOGROW_REQUIRE_EXTRAS") == "1":
+        pytest.fail(reason)
+    pytest.skip(reason)
+
+
 @pytest.fixture(scope="session")
 def vina():
     """Path to a working Vina executable, or skip."""
@@ -124,7 +135,8 @@ def vina():
     try:
         return paths.vina_exe()
     except FileNotFoundError:
-        pytest.skip("AutoDock Vina not installed (set ISOGROW_VINA or run scripts/data/get_vina.py)")
+        _skip_or_fail("AutoDock Vina not installed "
+                      "(set ISOGROW_VINA or run scripts/data/get_vina.py)")
 
 
 @pytest.fixture(scope="session")
@@ -135,7 +147,5 @@ def kcombu():
     try:
         return paths.kcombu_exe()
     except FileNotFoundError:
-        pytest.skip(
-            "fkcombu not installed (conda install -c michellab fkcombu, "
-            "then set ISOGROW_KCOMBU)"
-        )
+        _skip_or_fail("fkcombu not installed (conda install -c michellab fkcombu, "
+                      "then set ISOGROW_KCOMBU)")

@@ -60,3 +60,6 @@ jobs:
 
       - name: Tests (including docking and KCOMBU alignment)
         run: pytest
+        env:
+          # a missing tool must fail the run, not silently skip its tests
+          ISOGROW_REQUIRE_EXTRAS: "1"
