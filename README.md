@@ -123,8 +123,10 @@ Query `[*:1]c1cc2ccccc2o1` (benzofuran), 50k-compound database:
 |---|---|---|
 | Precision vs official | **72.3 %** | local candidates are real SwissBioisostere hits |
 | Recall@50 | **64 %** | the official top-50 ranking is largely reproduced |
-| Coverage of all 1665 candidates | 6.1 % | bounded by database size (50k ≈ 1/48 of ChEMBL) |
-| Δ MAE — tPSA / MW / logP | 0.13 / 1.81 / **0.51** | tPSA·MW agree; logP differs by model (Crippen vs ChEMBL ACD) |
+| Coverage of all 1663 candidates | 6.1 % | bounded by database size (50k ≈ 1/48 of ChEMBL) |
+| Δ error, tPSA — median / mean | **0.00 / 0.13** | exact; three inconsistent official rows inflate the mean |
+| Δ error, MW — median / mean | **0.00 / 1.81** | same three rows (e.g. an official ΔMW of −78.7 for a −4.6 change) |
+| Δ error, logP — median / mean | **0.50 / 0.51** | a systematic offset, not scatter: Crippen vs ChEMBL ACD |
 
 Stage B was verified end-to-end against a previous run of the original notebook: the CReM
 variant sets matched **100 %** (50/50 and 53/53 molecules), and the RDKit alignment RMSD was
@@ -134,8 +136,10 @@ variant sets matched **100 %** (50/50 and 53/53 molecules), and the RDKit alignm
 
 * **Coverage scales with the database.** A 50k subset reproduces ~6 % of a 2.4M-compound
   resource. Build a bigger database for production use; the method is not the bottleneck.
-* **ΔlogP uses RDKit Crippen**, whereas SwissBioisostere reports ChEMBL's ACD logP. Expect a
-  systematic offset of ~0.5 log units; tPSA and MW agree to rounding.
+* **ΔlogP carries a systematic +0.50 offset**, because we use RDKit Crippen while
+  SwissBioisostere reports ChEMBL's ACD logP. ΔtPSA and ΔMW agree to rounding on 99 of 102
+  candidates (median error 0.00) — always look at the median, since a few inconsistent
+  official rows wreck the mean. `report.json` reports both.
 * **The success score is a proxy** — net-improvement rate × log(pairs). SwissBioisostere also
   weights target/target-class/Murcko-scaffold diversity, which needs the full activity tables.
 * **KCOMBU is replaced by RDKit MCS alignment**, and py2 AutoDockTools by Meeko. Molecule

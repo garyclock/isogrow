@@ -5,23 +5,23 @@ All numbers below were produced on this codebase; the raw artefacts are not comm
 
 ## 1 · Search layer vs the official service
 
-Query `[*:1]c1cc2ccccc2o1` (benzofuran), official export with **1665** candidates,
+Query `[*:1]c1cc2ccccc2o1` (benzofuran), official export with **1663** candidates,
 local database built from a **50,000-compound** ChEMBL 37 subset (`--num-cuts 3`,
 `--symmetric`).
 
 | Metric | Value | Definition |
 |---|---|---|
-| Official candidates | 1665 | rows in the export |
+| Official candidates | 1663 | rows in the export (footer text excluded) |
 | Local candidates | 141 | rows returned locally |
 | Overlap | 102 | same canonical fragment on both sides |
 | **Precision vs official** | **72.3 %** | overlap / local — "are our candidates real?" |
 | **Recall@50** | **64.0 %** | share of the official top-50 we reproduce |
 | Coverage of all candidates | 6.1 % | overlap / official — "how much of the space do we cover?" |
-| Missing | 1563 | official-only |
+| Missing | 1561 | official-only |
 | Extra | 39 | local-only |
-| Δ MAE — ΔtPSA | **0.131** | tPSA is deterministic; agreement is essentially rounding |
-| Δ MAE — ΔMW | 1.814 | see note below |
-| Δ MAE — ΔlogP | 0.507 | Crippen vs ChEMBL ACD logP: a systematic model offset |
+| ΔtPSA — median / p90 / mean | **0.00 / 0.00 / 0.13** | deterministic; agreement is rounding |
+| ΔMW — median / p90 / mean | **0.00 / 0.01 / 1.81** | see the outlier note below |
+| ΔlogP — median / p90 / mean | **0.50 / 0.86 / 0.51** | systematic model offset |
 | Δ compared | 102 | candidates present on both sides |
 
 ### How to read it
@@ -33,18 +33,22 @@ local database built from a **50,000-compound** ChEMBL 37 subset (`--num-cuts 3`
 * **The top of the ranking is right.** Official top replacements — benzothiophene (ΔMW 16.07,
   ΔtPSA −13.14), indole, phenyl, naphthalene, thiophene, anisole — all appear locally with
   property deltas matching to two decimals on tPSA and MW.
-* **ΔlogP differs by design.** We compute Crippen logP with RDKit; the service reports
-  ChEMBL's ACD logP. The ~0.5 offset is the model, not a bug. Switching to the ChEMBL value
-  requires the SQLite dump and a rebuild with the `logp` property taken from
-  `compound_properties`.
-* **ΔMW MAE of 1.81 is larger than expected** and remains an open item: tPSA agreeing to 0.13
-  while MW is off by ~1.8 suggests the pair sets aggregated on each side differ slightly
-  (direction/symmetry handling), rather than a formula error. Investigate before publishing
-  MW-sensitive claims.
+* **ΔtPSA and ΔMW are exact for 99 of 102 candidates** (median 0.00, p90 ≤ 0.01). The mean is
+  distorted by three official rows that are internally inconsistent, e.g.
+  `Clc1ncccc1[*:1]` reports ΔMW −78.71 although swapping a benzofuran for a chloropyridine
+  changes MW by ≈ −4.6. **Report the median, not the mean** — this is why `report.json` now
+  carries `delta_median` and `delta_p90` next to `delta_mae`.
+* **ΔlogP is offset by a constant +0.50** (median exactly 0.500, p90 0.86 — a shift, not
+  scatter). We compute RDKit Crippen logP; SwissBioisostere reports ChEMBL's ACD logP. A check
+  over 3000 ChEMBL molecules finds `alogp − Crippen`: median 0.00, mean +0.06, |offset| 0.08
+  — i.e. the two models agree for most chemotypes but diverge by ~0.5 on aromatic
+  heteroatom swaps, which is exactly the class being benchmarked here. Rebuilding the
+  database with the `alogp` column from the ChEMBL SQLite dump should remove the offset;
+  that rebuild has not been run yet, so treat the ΔlogP column as *model dependent*.
 
 ## 2 · Stage B (CReM variants) vs a previous run of the original notebook
 
-Input: the official export filtered with the notebook's Δ ranges (1665 → 1355 candidates).
+Input: the official export filtered with the notebook's Δ ranges (1663 → 1353 candidates).
 Reference: 501 retained SDFs from the earlier run (`1_crem_sdf/batch_000`), grouped by ring
 system.
 

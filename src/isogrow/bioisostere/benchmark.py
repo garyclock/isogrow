@@ -63,6 +63,15 @@ def benchmark(official_csv: os.PathLike | str, mmpdb: os.PathLike | str,
     def mae(a):
         return round(sum(a) / len(a), 3) if a else None
 
+    def median(a):
+        return round(sorted(a)[len(a) // 2], 3) if a else None
+
+    def p90(a):
+        if not a:
+            return None
+        s = sorted(a)
+        return round(s[min(len(s) - 1, int(round(0.9 * (len(s) - 1))))], 3)
+
     report = {
         "query": query,
         "mmpdb": str(mmpdb),
@@ -78,6 +87,11 @@ def benchmark(official_csv: os.PathLike | str, mmpdb: os.PathLike | str,
             "dmw": mae(deltas["dmw"]),
             "n_compared": len(deltas["dlogp"]),
         },
+        # The mean alone is misleading: a handful of official rows carry values that
+        # are inconsistent with their own fragment pair (e.g. ΔMW -78 for a 4 Da
+        # change) and dominate the average. The median is the honest summary.
+        "delta_median": {k: median(v) for k, v in deltas.items()},
+        "delta_p90": {k: p90(v) for k, v in deltas.items()},
         "missing_count": n_off - len(inter),
         "extra_count": n_loc - len(inter),
     }

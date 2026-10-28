@@ -64,7 +64,7 @@
 <table>
 <tr><th>项</th><th>事实</th></tr>
 <tr><td>原料位置</td><td><code>D:/Gary_data/YEATS2/CReM/</code>：两个 notebook、SwissBioisostere 输出 CSV/PDF、CReM 库（<code>chembl22_sa2.db</code> 2.5 GB）、参考配体 <code>LS170_pk1.sdf</code>、受体 <code>Yeats2_ad4.pdbqt</code>、历史产物目录。</td></tr>
-<tr><td>SwissBioisostere 输出</td><td>查询片段 <code>[*:1]c1cc2ccccc2o1</code>（苯并呋喃-2-基），<b>1665 个候选</b>；列为 <code>Candidate Fragments / Frequency / #Better / #Similar / #Worse / ΔlogP / ΔtPSA / ΔMW</code>（列名含不换行空格 <code>\xa0</code>）。</td></tr>
+<tr><td>SwissBioisostere 输出</td><td>查询片段 <code>[*:1]c1cc2ccccc2o1</code>（苯并呋喃-2-基），<b>1663 个候选</b>；列为 <code>Candidate Fragments / Frequency / #Better / #Similar / #Worse / ΔlogP / ΔtPSA / ΔMW</code>（列名含不换行空格 <code>\xa0</code>）。</td></tr>
 <tr><td>顺位 Top 候选</td><td>benzothiophene(213) · indole(202) · phenyl(157) · naphthalene(128) · thiophene(84) · p-MeO-phenyl(83) —— 经典环等排，可直接当验收金标准。</td></tr>
 <tr><td>run_fraggen 流程</td><td>① 读 CSV 按 ΔlogP∈(-10,10)/ΔtPSA∈(-300,300)/ΔMW∈(-200,80) 过滤 → ② 每个候选 <code>*→C</code> 并记保护位后跑 CReM <code>mutate</code>(radius=2,size=0,inc=±2,不换环) → ③ ETKDG+MMFF(20步) 批量存 3D SDF → ④ KCOMBU 与 <code>LS170_pk1.sdf</code> 对齐 → ⑤（bash）PDBQT 化 + Uni-Dock 对接 → ⑥ top_N / 汇总打分。</td></tr>
 <tr><td>原始运行环境</td><td><b>Linux 集群</b>（<code>sbatch</code>、<code>conda activate py2</code>、<code>~/soft/KCOMBU/fkcombu</code>）。<b>本机 Windows 缺工具链</b>：无 <code>crem</code>/<code>rdkit</code> 可导入、无 KCOMBU、<code>pdb_2_pdbqt_inbatch.sh</code>/<code>run_unidock.sh</code>/<code>unidock_*.py</code> 未随数据拷回。</td></tr>
@@ -106,7 +106,7 @@
 <table>
 <tr><th>层</th><th>做法</th><th>忠实度 / 成本</th><th>用途</th></tr>
 <tr><td><b>L0 规则库</b></td><td>medchem 等排规则（环↔环、官能团↔官能团：苯↔噻吩/呋喃/吡咯/吡啶、-OH↔-NH₂↔-F、-COOH↔四唑…）+ RDKit 现算 Δ 属性</td><td>低忠实 / 极快</td><td>当天可跑通的 MVP，先验证 B–G 链路</td></tr>
-<tr><td><b>L1 mmpdb + ChEMBL</b></td><td>用开源 <code>mmpdb</code> 对 ChEMBL 结构枚举 MMP，建「fragment → replacements」索引；统计 Δ 属性、频次；活性维度可选从 ChEMBL activity 表补</td><td><b>高忠实 / 重</b>（全量 ChEMBL 建库按小时计）</td><td>真正的复刻，对标 1665 候选</td></tr>
+<tr><td><b>L1 mmpdb + ChEMBL</b></td><td>用开源 <code>mmpdb</code> 对 ChEMBL 结构枚举 MMP，建「fragment → replacements」索引；统计 Δ 属性、频次；活性维度可选从 ChEMBL activity 表补</td><td><b>高忠实 / 重</b>（全量 ChEMBL 建库按小时计）</td><td>真正的复刻，对标 1663 候选</td></tr>
 <tr><td><b>L2 改进</b></td><td>在 L1 上加：ΔHAC/Δ环数/ΔHBD·HBA/ΔRotB、SA-score 可合成性、3D 形状相似（USR/Overlap）、可选的靶点/口袋感知加权</td><td>超越官方</td><td>「更优」的论据</td></tr>
 </table>
 
@@ -128,7 +128,7 @@
 
 <h3>3.5 对标测试协议（判定「相同 / 更优」）</h3>
 <div class="card">
-<b>基准</b>：query <code>[*:1]c1cc2ccccc2o1</code>，官方 1665 候选 CSV。<br>
+<b>基准</b>：query <code>[*:1]c1cc2ccccc2o1</code>，官方 1663 候选 CSV。<br>
 <b>指标</b>（L1 对官方；L2 对 L1）：<br>
 ① <b>Top-N 召回</b>：官方 Top-20/50/100 中被本地命中的比例（期望 L1 ≥ 80%）；<br>
 ② <b>排序一致性</b>：候选频次/排名的 Spearman ρ；<br>
@@ -186,9 +186,9 @@ Windows 原生仅作回退（KCOMBU 编译、GPU 对接更麻烦）。<br><br>
 <table>
 <tr><th>阶段</th><th>目标</th><th>产出</th><th>验收门槛</th></tr>
 <tr><td><b>S0 环境基线</b></td><td>WSL 内装齐 rdkit/crem/mmpdb/meeko、编译 fkcombu、验证 Uni-Dock 跑通 1 个分子</td><td>环境脚本 + 冒烟日志</td><td>各依赖 <code>import</code>/<code>--version</code> 通过；单分子对接出分</td></tr>
-<tr><td><b>S1 本地等排体 MVP + 对标</b></td><td>L0 规则库跑通；L1 用 ChEMBL 子集建 MMP 库</td><td>兼容 CSV + 对标报告（1665 基准）</td><td>L0 能命中 Top-6 经典等排；L1 Top-20 召回 ≥ 80%、ΔMAE 达标</td></tr>
+<tr><td><b>S1 本地等排体 MVP + 对标</b></td><td>L0 规则库跑通；L1 用 ChEMBL 子集建 MMP 库</td><td>兼容 CSV + 对标报告（1663 基准）</td><td>L0 能命中 Top-6 经典等排；L1 Top-20 召回 ≥ 80%、ΔMAE 达标</td></tr>
 <tr><td><b>S2 流水线串联</b></td><td>A→G 用少量候选端到端跑通</td><td><code>runs/</code> 全链路产物 + 报告</td><td>10 个候选走通到 top-N 排序</td></tr>
-<tr><td><b>S3 原任务复跑 + 回归</b></td><td>在 YEATS2/CReM 全量复跑（1665→变体→...→对接）</td><td>与历史 <code>top_N*.txt</code> 对比</td><td>最终排序与历史可解释一致 / 更优；性能可接受</td></tr>
+<tr><td><b>S3 原任务复跑 + 回归</b></td><td>在 YEATS2/CReM 全量复跑（1663→变体→...→对接）</td><td>与历史 <code>top_N*.txt</code> 对比</td><td>最终排序与历史可解释一致 / 更优；性能可接受</td></tr>
 <tr><td><b>S4 打包复用</b></td><td>CLI + 配置模板 + README；可沉淀为 skill</td><td>可复用项目</td><td>一条命令换任务即可跑</td></tr>
 </table>
 
@@ -217,7 +217,7 @@ Windows 原生仅作回退（KCOMBU 编译、GPU 对接更麻烦）。<br><br>
 </div>
 
 <p class="muted" style="margin-top:30px;font-size:12.5px">
-说明：本规划基于对 <code>D:/Gary_data/YEATS2/CReM</code> 两个 notebook 源码、SwissBioisostere 输出 CSV（1665 候选）及 SIB 官方文献的核实；标注「未随数据拷回」的脚本需在 S0/S2 重写。参数与路径均在配置中显式声明，便于复算与追溯。
+说明：本规划基于对 <code>D:/Gary_data/YEATS2/CReM</code> 两个 notebook 源码、SwissBioisostere 输出 CSV（1663 候选）及 SIB 官方文献的核实；标注「未随数据拷回」的脚本需在 S0/S2 重写。参数与路径均在配置中显式声明，便于复算与追溯。
 </p>
 
 </div>
