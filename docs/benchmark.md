@@ -103,7 +103,7 @@ Same six molecules, both backends, identical receptor/box/parameters:
 | Backend | Vina (kcal/mol) | KCOMBU `rmsd_match` | MCS-atom RMSD |
 |---|---|---|---|
 | `mcs` (rigid) | −4.97 −5.03 −4.71 −3.92 −4.17 −4.18 | — | 0.05–0.06 Å |
-| `kcombu` (flexible, `-nini 1`) | −4.98 −5.01 −4.75 −3.98 −4.18 −4.15 | 0.16 Å (first molecule) | 0.12–3.49 Å |
+| `kcombu` (flexible, default, `-nini 1`) | −4.98 −5.01 −4.75 −3.98 −4.18 −4.15 | 0.16 Å (first molecule) | 0.12–3.49 Å |
 
 Two conclusions:
 

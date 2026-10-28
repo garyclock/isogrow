@@ -10,6 +10,24 @@ LEAD = "Cc1cc2ccccc2o1"
 EXPECTED_HEAVY = Chem.MolFromSmiles(LEAD).GetNumHeavyAtoms()
 
 
+def test_default_backend_is_kcombu():
+    # the pipeline defaults to the flexible KCOMBU fit (the notebook's behaviour)
+    assert align3d.DEFAULT_BACKEND == "kcombu"
+
+
+def test_missing_kcombu_binary_fails_loudly(tmp_path: Path, reference_ligand: Path, monkeypatch):
+    """Without the binary the pipeline must error, not silently align nothing."""
+    from isogrow import paths
+
+    sdf = embed3d.batch_embed([LEAD], str(tmp_path / "3d"))[0]
+    monkeypatch.delenv(paths.ENV_KCOMBU, raising=False)
+    monkeypatch.setattr("shutil.which", lambda *a, **k: None)
+
+    with pytest.raises(FileNotFoundError, match="fkcombu"):
+        align3d.batch_align([sdf], str(reference_ligand), str(tmp_path / "aligned"),
+                            backend="kcombu")
+
+
 def test_unknown_backend_rejected(tmp_path: Path, reference_ligand: Path):
     sdf = embed3d.batch_embed([LEAD], str(tmp_path / "3d"))[0]
     with pytest.raises(ValueError, match="unknown alignment backend"):

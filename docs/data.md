@@ -14,8 +14,10 @@ Nothing in this table is committed to the repository. Everything lands in
 
 ## KCOMBU / fkcombu
 
-Only needed when `align_backend` is `kcombu`; the default `mcs` backend has no external
-dependency. There is **no Windows build** — it is a C program for Linux/macOS:
+**Required by default**: the pipeline ships with `align_backend: kcombu`. If you cannot install
+it, run with `--align-backend mcs` (pure-Python rigid fit, no external dependency).
+
+There is **no Windows build** — it is a C program for Linux/macOS:
 
 ```bash
 conda install -c michellab fkcombu          # or build from pdbj.org/kcombu/download_src.html

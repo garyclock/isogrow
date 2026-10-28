@@ -247,7 +247,8 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--variants-per-candidate", type=int, default=None)
     r.add_argument("--docking-backend", default=None)
     r.add_argument("--align-backend", choices=["mcs", "kcombu"], default=None,
-                   help="mcs = rigid MCS fit (default); kcombu = flexible fit")
+                   help="kcombu = flexible fit (default, needs fkcombu); "
+                        "mcs = rigid RDKit MCS fit (no dependencies)")
     r.set_defaults(func=cmd_run)
 
     m = sub.add_parser("benchmark", help="compare against an official export")

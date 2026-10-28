@@ -35,6 +35,11 @@ from isogrow import paths
 
 BACKENDS = ("mcs", "kcombu")
 
+#: Flexible KCOMBU fitting is the default: it reproduces the original notebook's
+#: geometry and can avoid the receptor. ``--align-backend mcs`` (or
+#: ``"align_backend": "mcs"``) switches to the dependency-free rigid fit.
+DEFAULT_BACKEND = "kcombu"
+
 
 # --------------------------------------------------------------------------- #
 # helpers
@@ -187,7 +192,7 @@ def align_kcombu(
 # --------------------------------------------------------------------------- #
 # unified entry points
 # --------------------------------------------------------------------------- #
-def align_file(target_path, ref, out_path, backend: str = "mcs", **kwargs):
+def align_file(target_path, ref, out_path, backend: str = DEFAULT_BACKEND, **kwargs):
     """Align one SDF file and write the result; returns ``(mol, rmsd)``."""
     if backend not in BACKENDS:
         raise ValueError(f"unknown alignment backend {backend!r}; choose from {BACKENDS}")
@@ -238,9 +243,16 @@ def _ref_path(ref):
     raise TypeError("the kcombu backend needs the reference ligand as a file path")
 
 
-def batch_align(sdf_paths, ref_sdf: str, outdir: str, backend: str = "mcs",
+def batch_align(sdf_paths, ref_sdf: str, outdir: str, backend: str = DEFAULT_BACKEND,
                 batch_size: int = 500, **kwargs):
     """Align a list of 3D SDF files; returns the written paths (failures skipped)."""
+    if backend not in BACKENDS:
+        raise ValueError(f"unknown alignment backend {backend!r}; choose from {BACKENDS}")
+    if backend == "kcombu":
+        # resolve once, up front: a missing binary must fail loudly instead of
+        # silently producing zero aligned molecules one by one.
+        paths.kcombu_exe(kwargs.get("exe"))
+
     os.makedirs(outdir, exist_ok=True)
     ref = Chem.MolFromMolFile(ref_sdf, removeHs=False)
     out = []
@@ -262,4 +274,11 @@ def batch_align(sdf_paths, ref_sdf: str, outdir: str, backend: str = "mcs",
         except Exception:  # noqa: BLE001 - one bad molecule must not stop the batch
             continue
         out.append(opath)
+
+    if backend == "kcombu" and sdf_paths and not out:
+        raise RuntimeError(
+            "fkcombu ran but produced no usable alignment for any molecule — "
+            "check that the reference ligand shares a substructure with the targets "
+            "(try --align-backend mcs to confirm)."
+        )
     return out

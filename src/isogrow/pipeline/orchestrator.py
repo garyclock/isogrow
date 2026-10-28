@@ -54,7 +54,7 @@ def run(config: dict) -> dict:
         sdf,
         config["ref_ligand"],
         os.path.join(out, "3_aligned"),
-        backend=config.get("align_backend", "mcs"),
+        backend=config.get("align_backend", align3d.DEFAULT_BACKEND),
         **config.get("kcombu", {}),
     )
 

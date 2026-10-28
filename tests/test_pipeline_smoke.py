@@ -29,7 +29,8 @@ def test_embed_align_pdbqt(tmp_path: Path, reference_ligand: Path):
     sdfs = embed3d.batch_embed(LEADS, str(tmp_path / "3d"))
     assert len(sdfs) == len(LEADS)
 
-    aligned = align3d.batch_align(sdfs, str(reference_ligand), str(tmp_path / "aligned"))
+    aligned = align3d.batch_align(sdfs, str(reference_ligand), str(tmp_path / "aligned"),
+                              backend="mcs")   # dependency-free backend for the CI path
     assert len(aligned) >= 1
     # alignment must not change the molecule: heavy-atom count is preserved
     for original, path in zip(sdfs, aligned, strict=False):
@@ -53,7 +54,8 @@ def test_box_from_reference_ligand(reference_ligand: Path):
 @pytest.mark.slow
 def test_docking_scores_one_ligand(tmp_path: Path, receptor: Path, reference_ligand: Path, vina: str):
     sdf = embed3d.batch_embed(LEADS[:1], str(tmp_path / "3d"))[0]
-    aligned = align3d.batch_align([sdf], str(reference_ligand), str(tmp_path / "aligned"))[0]
+    aligned = align3d.batch_align([sdf], str(reference_ligand), str(tmp_path / "aligned"),
+                              backend="mcs")[0]
     pdbqt = pdb2pdbqt.batch_pdbqt([aligned], str(tmp_path / "pdbqt"))[0]
 
     center, size = align3d.box_from_ligand(str(reference_ligand), padding=8.0)

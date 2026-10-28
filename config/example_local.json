@@ -33,7 +33,7 @@
   "ref_ligand": "tests/data/reference_ligand.sdf",
   "receptor": "tests/data/receptor.pdbqt",
   "box_padding": 8.0,
-  "align_backend": "mcs",
+  "align_backend": "kcombu",
   "kcombu": {
     "rigid": false,
     "nini": 1,

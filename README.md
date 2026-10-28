@@ -132,19 +132,23 @@ global slice, so the ranking does not collapse onto the single most frequent rep
 
 ## Alignment backends
 
-Stage D can use either of two engines (`align_backend` in the config, or
-`--align-backend` on `isogrow run`):
+Stage D uses KCOMBU's flexible fit **by default** (`align_backend` in the config, or
+`--align-backend` on `isogrow run`). Two engines are available:
 
 | Backend | What it does | Needs |
 |---|---|---|
-| `mcs` (default) | rigid-body least-squares on the RDKit MCS — rotates/translates, never changes internal geometry | nothing (pure Python) |
-| `kcombu` | KCOMBU's `fkcombu`: 2D-MCS correspondence, then **flexible** fit — torsion angles stamped from the reference and refined by steepest descent over `nini` initial conformers; can also avoid the receptor (`-P`) | `fkcombu` binary (Linux/macOS only) |
+| `kcombu` (default) | KCOMBU's `fkcombu`: 2D-MCS correspondence, then **flexible** fit — torsion angles stamped from the reference and refined by steepest descent over `nini` initial conformers; can also avoid the receptor (`-P`) | `fkcombu` binary (Linux/macOS, or WSL) |
+| `mcs` | rigid-body least-squares on the RDKit MCS — rotates/translates, never changes internal geometry | nothing (pure Python) |
 
 ```bash
 conda install -c michellab fkcombu            # Linux / macOS
 export ISOGROW_KCOMBU=/path/to/fkcombu        # or a WSL command string, see docs/data.md
-isogrow run --config config/my_run.json --align-backend kcombu
+isogrow run --config config/my_run.json                    # kcombu
+isogrow run --config config/my_run.json --align-backend mcs   # no external binary
 ```
+
+If `fkcombu` is missing the pipeline **fails immediately with install instructions** rather than
+silently aligning nothing.
 
 On Windows, drive a WSL install with a command string:
 
@@ -187,8 +191,8 @@ variant sets matched **100 %** (50/50 and 53/53 molecules), and the RDKit alignm
   few inconsistent official rows wreck the mean. `report.json` reports both.
 * **The success score is a proxy** — net-improvement rate × log(pairs). SwissBioisostere also
   weights target/target-class/Murcko-scaffold diversity, which needs the full activity tables.
-* **Alignment is pluggable**: `mcs` (rigid, default) or `kcombu` (flexible, the tool the
-  original notebook used). py2 AutoDockTools is replaced by Meeko. Molecule identity is
+* **Alignment defaults to KCOMBU (flexible)**; `--align-backend mcs` switches to the
+  dependency-free rigid fit. py2 AutoDockTools is replaced by Meeko. Molecule identity is
   preserved in every path (heavy-atom counts verified).
 * **Docking scores are engine specific.** Vina is the default; Uni-Dock and external engines
   plug in through `isogrow.pipeline.dock.BACKENDS`.

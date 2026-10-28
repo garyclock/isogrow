@@ -57,9 +57,9 @@ silently producing empty strings.
 signature `(receptor, ligand_pdbqt, center, size, out_pdbqt=…) -> {affinity, …}`. Vina and
 Uni-Dock ship in-tree; an external engine is a three-line wrapper.
 
-**Alignment is an interface too.** `align3d.BACKENDS` offers `mcs` (rigid-body fit on the RDKit
-MCS, pure Python) and `kcombu` (KCOMBU's flexible fit: 2D-MCS correspondence, torsion stamping,
-steepest-descent refinement over `nini` initial conformers, optional receptor avoidance). The
+**Alignment is an interface too.** `align3d.BACKENDS` offers `kcombu` (default: 2D-MCS
+correspondence, torsion stamping, steepest-descent refinement over `nini` initial conformers,
+optional receptor avoidance) and `mcs` (rigid-body fit on the RDKit MCS, pure Python). The
 kcombu backend shells out, so its `exe` accepts a **command string** — that is how a Linux-only
 binary inside WSL is driven from Windows (`ISOGROW_KCOMBU="wsl.exe -d Ubuntu -- /path/fkcombu"`),
 with `D:\…` paths translated to `/mnt/d/…` automatically. Two consequences we had to handle:

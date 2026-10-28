@@ -98,18 +98,21 @@ isogrow run --config config/my_run.json
 
 ## 对齐后端
 
-阶段 D 可选两种引擎（配置项 `align_backend`，或 `isogrow run --align-backend`）：
+阶段 D **默认用 KCOMBU 的柔性拟合**（配置项 `align_backend`，或 `isogrow run --align-backend`）：
 
 | 后端 | 做什么 | 依赖 |
 |---|---|---|
-| `mcs`（默认） | RDKit MCS 上的**刚体**最小二乘——只旋转平移，不改分子内部构象 | 无（纯 Python） |
-| `kcombu` | KCOMBU 的 `fkcombu`：2D-MCS 对应后做**柔性**拟合——把参考的扭转角“盖”到目标上，再用最速下降在 `nini` 个初始构象上优化；还能用 `-P` 避让受体 | `fkcombu` 二进制（仅 Linux/macOS） |
+| `kcombu`（默认） | KCOMBU 的 `fkcombu`：2D-MCS 对应后做**柔性**拟合——把参考的扭转角“盖”到目标上，再用最速下降在 `nini` 个初始构象上优化；还能用 `-P` 避让受体 | `fkcombu` 二进制（Linux/macOS，或 WSL） |
+| `mcs` | RDKit MCS 上的**刚体**最小二乘——只旋转平移，不改分子内部构象 | 无（纯 Python） |
 
 ```bash
 conda install -c michellab fkcombu            # Linux / macOS
 export ISOGROW_KCOMBU=/path/to/fkcombu        # Windows 用 WSL 命令字符串，见 docs/data.md
-isogrow run --config config/my_run.json --align-backend kcombu
+isogrow run --config config/my_run.json                      # kcombu（默认）
+isogrow run --config config/my_run.json --align-backend mcs  # 不装二进制时的回退
 ```
+
+`fkcombu` 缺失时流水线会**立刻报错并给出安装指引**，而不是静默对齐出 0 个分子。
 
 **实测差异（同一批 6 个分子，YEATS2 案例）**：两种后端的对接分最多相差 **0.06 kcal/mol**
 （−4.98…−3.98 vs −5.03…−3.92），因为 Vina 本来就会重新优化构象。KCOMBU 自报 `rmsd_match = 0.16 Å`
@@ -140,7 +143,7 @@ RDKit 对齐 RMSD 0.06 Å。细节见 [docs/benchmark.md](docs/benchmark.md)。
   ΔtPSA / ΔMW 在 102 个候选里 99 个精确吻合（中位误差 0.00）——**看中位数**，少数官方异常行会把均值毁掉；
   `report.json` 两者都给。加 +0.5 常数校准可把 logP 误差从 0.51 降到 0.22，但**默认不启用**（见 docs/benchmark.md）。
 * **success score 是代理公式**（净提升率 × log(对数)），官方还加权靶点/靶点类别/Murcko 骨架多样性。
-* **对齐可插拔**：`mcs`（刚体，默认）或 `kcombu`（柔性，原 notebook 用的工具）；py2 AutoDockTools 换成 Meeko。
+* **对齐默认 KCOMBU（柔性）**；`--align-backend mcs` 可切到无依赖的刚体拟合。py2 AutoDockTools 换成 Meeko。
   两条路径都逐条核过重原子数，分子身份不变。
 * **对接分数依赖引擎**：默认 Vina，Uni-Dock / 外部引擎可通过 `isogrow.pipeline.dock.BACKENDS` 接入。
 
