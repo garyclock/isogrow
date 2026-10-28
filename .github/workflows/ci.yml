@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          # mmpdb is installed from git: the PyPI package of that name ships no module.
+          pip install -e ".[mmpdb,pipeline,dev]"
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Environment report
+        continue-on-error: true        # Vina is optional; docking tests skip without it
+        run: isogrow doctor
+
+      - name: Tests (fast suite)
+        run: pytest -m "not slow"
+
+      - name: Tests (slow: needs a docking engine, installed on demand)
+        if: vars.RUN_SLOW_TESTS == 'true'
+        run: |
+          python scripts/data/get_vina.py
+          pytest -m slow
+        env:
+          ISOGROW_VINA: ${{ github.workspace }}/data/bin/vina

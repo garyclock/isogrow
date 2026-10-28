@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IsoGrow 落地规划 · 本地 SwissBioisostere + 端到端分子生长流水线</title>
+<style>
+  :root{
+    --bg:#ffffff; --fg:#1f2328; --muted:#57606a; --line:#d0d7de;
+    --accent:#2b6cb0; --accent2:#c6f6d5; --warn:#fff4d6; --card:#f6f8fa;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+       line-height:1.65;font-size:15px}
+  .wrap{max-width:980px;margin:0 auto;padding:40px 28px 80px}
+  h1{font-size:26px;margin:0 0 6px}
+  .sub{color:var(--muted);font-size:13.5px;margin-bottom:28px}
+  h2{font-size:20px;margin:38px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--accent)}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--accent)}
+  p{margin:8px 0}
+  ul,ol{margin:8px 0 8px 22px}
+  li{margin:4px 0}
+  code{font-family:var(--mono);background:#eef1f4;padding:1px 5px;border-radius:4px;font-size:13px}
+  pre{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;
+      overflow:auto;font-family:var(--mono);font-size:12.5px;line-height:1.5}
+  table{border-collapse:collapse;width:100%;margin:12px 0;font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--card);font-weight:600}
+  tr:nth-child(even) td{background:#fbfcfd}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:14px 0}
+  .warn{background:var(--warn);border:1px solid #e6c86e;border-radius:8px;padding:10px 14px;margin:12px 0}
+  .ok{background:#e8f7ee;border:1px solid #9be0b4;border-radius:8px;padding:10px 14px;margin:12px 0}
+  .tag{display:inline-block;font-size:11.5px;padding:1px 8px;border-radius:10px;
+       background:#e3eef9;color:#1a4f86;margin-right:6px;font-weight:600}
+  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin:16px 0}
+  .step{flex:1 1 150px;background:#fff;border:1.5px solid var(--accent);border-radius:10px;
+        padding:10px 12px;min-width:140px}
+  .step b{display:block;color:var(--accent);font-size:13px;margin-bottom:4px}
+  .step small{color:var(--muted);font-size:12px}
+  .arrow{align-self:center;color:var(--accent);font-size:20px;font-weight:700}
+  .muted{color:var(--muted)}
+  .kbd{font-family:var(--mono);background:#eef1f4;padding:1px 6px;border-radius:4px;font-size:12.5px}
+  .pill{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;
+        background:#e3eef9;color:#1a4f86;margin:2px 4px 2px 0;font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>IsoGrow 落地规划</h1>
+<div class="sub">
+  本地版 SwissBioisostere + 端到端「母核 → 生物电子等排体 → 可合成变体 → 对齐构象 → 对接打分排序」流水线<br>
+  承接会话 9abd8cc0「检查 CReM 目录下的 jupyter notebook 脚本」｜项目目录 <code>D:/Gary_data/IsoGrow</code>｜2026-10-27
+</div>
+
+<div class="ok">
+<b>一句话方案：</b>用 <b>mmpdb + ChEMBL</b> 在本地重建 SwissBioisostere 的「MMP 片段替换库」做成可复现的本地搜索引擎（这是它的真实原理，非黑箱），
+再用同一套脚本把 CReM 两个 notebook 的后处理（变体生成 → 3D → KCOMBU 对齐 → PDBQT → Uni-Dock → 排序）串成一条可配置流水线，并在 YEATS2/CReM 原任务上做回归对标。
+</div>
+
+<h2>0 · 现状核实（已查实，不是推测）</h2>
+<table>
+<tr><th>项</th><th>事实</th></tr>
+<tr><td>原料位置</td><td><code>D:/Gary_data/YEATS2/CReM/</code>：两个 notebook、SwissBioisostere 输出 CSV/PDF、CReM 库（<code>chembl22_sa2.db</code> 2.5 GB）、参考配体 <code>LS170_pk1.sdf</code>、受体 <code>Yeats2_ad4.pdbqt</code>、历史产物目录。</td></tr>
+<tr><td>SwissBioisostere 输出</td><td>查询片段 <code>[*:1]c1cc2ccccc2o1</code>（苯并呋喃-2-基），<b>1665 个候选</b>；列为 <code>Candidate Fragments / Frequency / #Better / #Similar / #Worse / ΔlogP / ΔtPSA / ΔMW</code>（列名含不换行空格 <code>\xa0</code>）。</td></tr>
+<tr><td>顺位 Top 候选</td><td>benzothiophene(213) · indole(202) · phenyl(157) · naphthalene(128) · thiophene(84) · p-MeO-phenyl(83) —— 经典环等排，可直接当验收金标准。</td></tr>
+<tr><td>run_fraggen 流程</td><td>① 读 CSV 按 ΔlogP∈(-10,10)/ΔtPSA∈(-300,300)/ΔMW∈(-200,80) 过滤 → ② 每个候选 <code>*→C</code> 并记保护位后跑 CReM <code>mutate</code>(radius=2,size=0,inc=±2,不换环) → ③ ETKDG+MMFF(20步) 批量存 3D SDF → ④ KCOMBU 与 <code>LS170_pk1.sdf</code> 对齐 → ⑤（bash）PDBQT 化 + Uni-Dock 对接 → ⑥ top_N / 汇总打分。</td></tr>
+<tr><td>原始运行环境</td><td><b>Linux 集群</b>（<code>sbatch</code>、<code>conda activate py2</code>、<code>~/soft/KCOMBU/fkcombu</code>）。<b>本机 Windows 缺工具链</b>：无 <code>crem</code>/<code>rdkit</code> 可导入、无 KCOMBU、<code>pdb_2_pdbqt_inbatch.sh</code>/<code>run_unidock.sh</code>/<code>unidock_*.py</code> 未随数据拷回。</td></tr>
+<tr><td>本机可用</td><td><code>D:/Gary_data/YEATS2/Unidock</code>、<code>Autodock4/unidock</code>（Uni-Dock 在）；WSL Ubuntu + miniforge3（你既有）；RTX 4000 8 GB。</td></tr>
+</table>
+
+<h2>1 · 目标拆解</h2>
+<div class="flow">
+  <div class="step"><b>目标 1</b><small>做本地版 SwissBioisostere（可改进），并在同一任务上与官方输出对标，判定「相同 / 更优」。</small></div>
+  <div class="arrow">→</div>
+  <div class="step"><b>目标 2</b><small>把它和两个 notebook 的后处理合并成完整流水线：片段/母核 → 多个等排体 → 多个可合成变体 → 对齐构象 → 对接优化+打分排序。</small></div>
+</div>
+
+<h2>2 · 总体架构与数据流</h2>
+<div class="flow">
+  <div class="step"><b>A 本地等排体搜索</b><small>query 片段 → 候选替换片段 + Δ 属性（兼容 SwissBioisostere CSV）</small></div>
+  <div class="arrow">→</div>
+  <div class="step"><b>B 可合成变体</b><small>CReM mutate（复用 notebook 逻辑）</small></div>
+  <div class="arrow">→</div>
+  <div class="step"><b>C 3D 构象</b><small>ETKDG + MMFF94</small></div>
+  <div class="arrow">→</div>
+  <div class="step"><b>D 对齐</b><small>KCOMBU → 参考配体</small></div>
+</div>
+<div class="flow">
+  <div class="step"><b>E PDBQT 化</b><small>Meeko/ADT（替换 py2 脚本）</small></div>
+  <div class="arrow">→</div>
+  <div class="step"><b>F 对接</b><small>Uni-Dock（GPU，批量/断点续跑）</small></div>
+  <div class="arrow">→</div>
+  <div class="step"><b>G 打分排序</b><small>解析打分 → 多指标排序 → top-N + 报告</small></div>
+</div>
+<p class="muted">每个阶段输入输出落盘可追溯（provenance），中间产物可单独重跑；A 阶段与 B–G 通过「兼容 SwissBioisostere 的 CSV」解耦，官方 CSV 可无缝替换本地输出做对照。</p>
+
+<h2>3 · 本地版 SwissBioisostere 设计（核心）</h2>
+
+<h3>3.1 原理对齐（为什么能复现）</h3>
+<p>SwissBioisostere 不是黑箱：它的数据来自 <b>ChEMBL 的 MMP（matched molecular pairs）</b>——同一 assay 内成对的化合物，共享一个「恒定部分」，在一个「R 基片段」上不同；把成千上万个这样的替换聚合，就得到「某片段 → 替换片段」的库，并统计每个替换的平均 ΔlogP/ΔtPSA/ΔMW、出现次数、以及按生物活性变化分三类的 #Better/#Similar/#Worse（阈值 Δbioactivity ≥ 0.5 log 判为更好/更差，其余 Similar）。<b>只要我们能从 ChEMBL 复现 MMP 抽取，就能本地得到同构的库。</b></p>
+
+<h3>3.2 分层数据策略（按忠实度递进）</h3>
+<table>
+<tr><th>层</th><th>做法</th><th>忠实度 / 成本</th><th>用途</th></tr>
+<tr><td><b>L0 规则库</b></td><td>medchem 等排规则（环↔环、官能团↔官能团：苯↔噻吩/呋喃/吡咯/吡啶、-OH↔-NH₂↔-F、-COOH↔四唑…）+ RDKit 现算 Δ 属性</td><td>低忠实 / 极快</td><td>当天可跑通的 MVP，先验证 B–G 链路</td></tr>
+<tr><td><b>L1 mmpdb + ChEMBL</b></td><td>用开源 <code>mmpdb</code> 对 ChEMBL 结构枚举 MMP，建「fragment → replacements」索引；统计 Δ 属性、频次；活性维度可选从 ChEMBL activity 表补</td><td><b>高忠实 / 重</b>（全量 ChEMBL 建库按小时计）</td><td>真正的复刻，对标 1665 候选</td></tr>
+<tr><td><b>L2 改进</b></td><td>在 L1 上加：ΔHAC/Δ环数/ΔHBD·HBA/ΔRotB、SA-score 可合成性、3D 形状相似（USR/Overlap）、可选的靶点/口袋感知加权</td><td>超越官方</td><td>「更优」的论据</td></tr>
+</table>
+
+<h3>3.3 统一接口与输出</h3>
+<pre>engine(query_fragment: str,            # 带 [*:1]/[*:2]/[*:3] 的片段或母核 SMILES
+       source: "L0"|"L1"|"L2",        # 数据层
+       filters: dict,                 # ΔlogP/ΔtPSA/ΔMW 区间（对齐 notebook）
+       topn: int) -> DataFrame        # 列与 SwissBioisostere 完全一致</pre>
+<p>输出严格复刻官方 CSV 列：<code>Candidate Fragments, Frequency, #Better, #Similar, #Worse, Δ logP, Δ tPSA, Δ MW</code>（含 <code>\xa0</code> 列名兼容），这样 <code>run_fraggen</code> 的 <code>SwissBioisostereo_filter()</code> 无需改动即可读本地结果。</p>
+
+<h3>3.4 关键算法点</h3>
+<ul>
+<li><b>MMP 抽取</b>：mmpdb 按单键切分 + 环境匹配；记录 attachment point 与「恒定部分」。</li>
+<li><b>按查询片段聚合</b>：给定 query 片段，匹配所有「被替换片段 = query」的 MMP，收集其替换片段（不要求恒定部分相同——与官方「查某片段的所有历史替换」一致）。</li>
+<li><b>Δ 属性</b>：默认 RDKit（Crippen logP / TPSA / ExactMolWt）计算；为对齐官方口径，可选读 ChEMBL 提供的 ACD logP / tPSA / MW（建库时一起入库）。</li>
+<li><b>Better/Similar/Worse</b>：有 ChEMBL 活性时按 Δbioactivity 0.5 log 阈值分三类；无活性时置空并在报告标注「降级」。</li>
+<li><b>评分与排序</b>：频次 + 属性相似度（复刻官方 success score 思路）→ 可叠加 L2 指标。</li>
+</ul>
+
+<h3>3.5 对标测试协议（判定「相同 / 更优」）</h3>
+<div class="card">
+<b>基准</b>：query <code>[*:1]c1cc2ccccc2o1</code>，官方 1665 候选 CSV。<br>
+<b>指标</b>（L1 对官方；L2 对 L1）：<br>
+① <b>Top-N 召回</b>：官方 Top-20/50/100 中被本地命中的比例（期望 L1 ≥ 80%）；<br>
+② <b>排序一致性</b>：候选频次/排名的 Spearman ρ；<br>
+③ <b>Δ 属性一致性</b>：重合候选的 ΔlogP/ΔtPSA/ΔMW 之 MAE（期望 < 0.5 log / < 10 Å² / < 10 Da）；<br>
+④ <b>覆盖度</b>：本地在官方之外的候选数，且经 RDKit 合法性 + 属性过滤仍有效（「更优」的证据之一）；<br>
+⑤ <b>效率</b>：单查询耗时、建库耗时/体积。<br>
+<b>判定</b>：L1 达 ①≥80% & ③达标 = 「功能相同」；L2 在 ④ 有质的增量且不损 ①③ = 「更优」。
+</div>
+
+<h2>4 · 端到端流水线（把 notebook 后处理模块化）</h2>
+<h3>4.1 模块清单</h3>
+<table>
+<tr><th>阶段</th><th>模块</th><th>来源</th><th>改造要点</th></tr>
+<tr><td>A</td><td><code>bioisostere/engine.py</code></td><td>新写</td><td>L0/L1/L2 统一接口，输出兼容 CSV</td></tr>
+<tr><td>B</td><td><code>crem_variants.py</code></td><td>复用 <code>run_crem_mutate</code>/<code>smiles_replace_Stars_with_Carbons</code></td><td>参数化；去 notebook 依赖；结果缓存</td></tr>
+<tr><td>C</td><td><code>embed3d.py</code></td><td>复用 <code>inBatch_smileslist_2_sdf3Ds</code></td><td>ETKDG 随机种子、失败回退、断点续跑</td></tr>
+<tr><td>D</td><td><code>kcombu.py</code></td><td>复用 <code>inbatch_kcombu</code></td><td>编译 fkcombu（WSL）；并发化</td></tr>
+<tr><td>E</td><td><code>pdb2pdbqt.py</code></td><td><b>重写</b>（原为 py2 脚本）</td><td>Meeko（RDKit）或 ADT；box 参数化</td></tr>
+<tr><td>F</td><td><code>unidock.py</code></td><td>重写（原 <code>run_unidock.sh</code>）</td><td>GPU/批大小、SLURM 可选、失败重试</td></tr>
+<tr><td>G</td><td><code>rank_final.py</code></td><td>复用 <code>unidock_extract/summary</code> 思路</td><td>多指标排序 + top-N + HTML/CSV 报告</td></tr>
+<tr><td>—</td><td><code>pipeline.py</code> + <code>cli/isogrow.py</code></td><td>新写</td><td>YAML 配置驱动、日志、provenance</td></tr>
+</table>
+
+<h3>4.2 关键改造（相对原 notebook）</h3>
+<ul>
+<li><b>去 py2</b>：PDBQT 用 <b>Meeko</b> 替代「conda py2 + AutoDockTools」，全链路 py3。</li>
+<li><b>去集群依赖</b>：<code>sbatch</code> 改为本地批处理（可选 SLURM 适配层）。</li>
+<li><b>8 GB GPU 约束</b>：Uni-Dock 分批 + 并发受控，避免 OOM；显存/批量自动调参。</li>
+<li><b>配置化</b>：所有参数（query、过滤区间、CReM 参数、参考配体、box、topN）进 <code>config/*.yaml</code>。</li>
+<li><b>可复现</b>：每次 run 落 <code>runs/&lt;date&gt;_&lt;task&gt;/</code>，含 config 快照、中间索引、日志、最终报告。</li>
+</ul>
+
+<h3>4.3 目录结构</h3>
+<pre>D:/Gary_data/IsoGrow/
+├─ config/            default.yaml · yeats2_crem_task.yaml
+├─ src/
+│  ├─ bioisostere/    engine.py rules.py mmpdb_backend.py props.py rank.py io.py
+│  ├─ crem_variants.py embed3d.py kcombu.py pdb2pdbqt.py unidock.py rank_final.py
+│  └─ pipeline.py
+├─ cli/isogrow.py
+├─ data/  chembl/ · mmpdb/ · refs/      # D 盘，大文件不入 git
+├─ tests/ test_bioisostere.py test_pipeline_smoke.py
+├─ runs/  2026-10-27_yeats2_crem/
+└─ docs/  PLAN.html README.md</pre>
+
+<h2>5 · 运行环境方案</h2>
+<div class="card">
+<b>推荐：WSL Ubuntu + miniforge3</b>（Linux 工具链原生：KCOMBU 可编译、Uni-Dock GPU 可用、mmpdb/rdkit/crem 生态完整）。<br>
+Windows 原生仅作回退（KCOMBU 编译、GPU 对接更麻烦）。<br><br>
+关键依赖：<span class="pill">python 3.10/3.11</span><span class="pill">rdkit</span><span class="pill">crem</span><span class="pill">mmpdb</span><span class="pill">meeko</span><span class="pill">pandas/numpy</span><span class="pill">fkcombu(编译)</span><span class="pill">Uni-Dock(GPU)</span><br>
+数据：ChEMBL 结构/活性库（全量或子集）→ <code>data/chembl/</code>；构建后的 MMP 库 → <code>data/mmpdb/</code>（均落 D 盘）。
+</div>
+
+<h2>6 · 里程碑与验收门槛</h2>
+<table>
+<tr><th>阶段</th><th>目标</th><th>产出</th><th>验收门槛</th></tr>
+<tr><td><b>S0 环境基线</b></td><td>WSL 内装齐 rdkit/crem/mmpdb/meeko、编译 fkcombu、验证 Uni-Dock 跑通 1 个分子</td><td>环境脚本 + 冒烟日志</td><td>各依赖 <code>import</code>/<code>--version</code> 通过；单分子对接出分</td></tr>
+<tr><td><b>S1 本地等排体 MVP + 对标</b></td><td>L0 规则库跑通；L1 用 ChEMBL 子集建 MMP 库</td><td>兼容 CSV + 对标报告（1665 基准）</td><td>L0 能命中 Top-6 经典等排；L1 Top-20 召回 ≥ 80%、ΔMAE 达标</td></tr>
+<tr><td><b>S2 流水线串联</b></td><td>A→G 用少量候选端到端跑通</td><td><code>runs/</code> 全链路产物 + 报告</td><td>10 个候选走通到 top-N 排序</td></tr>
+<tr><td><b>S3 原任务复跑 + 回归</b></td><td>在 YEATS2/CReM 全量复跑（1665→变体→...→对接）</td><td>与历史 <code>top_N*.txt</code> 对比</td><td>最终排序与历史可解释一致 / 更优；性能可接受</td></tr>
+<tr><td><b>S4 打包复用</b></td><td>CLI + 配置模板 + README；可沉淀为 skill</td><td>可复用项目</td><td>一条命令换任务即可跑</td></tr>
+</table>
+
+<h2>7 · 风险与对策</h2>
+<table>
+<tr><th>风险</th><th>对策</th></tr>
+<tr><td>ChEMBL 全量 MMP 建库耗时/占空间</td><td>先子集（如目标相关或随机 20–50 万化合物）跑通，再扩全量；D 盘空间充足（3.2 TB）</td></tr>
+<tr><td>「更优」判定主观</td><td>先用 3.5 的量化指标定基线；L2 增量单列，不与 L1 混判</td></tr>
+<tr><td>8 GB GPU 对接批量受限</td><td>分批 + 并发受控 + 失败重试；必要时降 box/分批</td></tr>
+<tr><td>KCOMBU / PDBQT 工具链缺失</td><td>S0 内编译 fkcombu；PDBQT 用 Meeko 绕开 py2</td></tr>
+<tr><td>数据口径不一致（ChEMBL 版本、logP 来源）</td><td>建库锁定 ChEMBL 版本（建议与 <code>chembl22</code> 同代以便同口径），属性来源写入 provenance</td></tr>
+<tr><td>官方库不可下载 → 无法逐条 1:1 复刻</td><td>以「Top-N 召回 + 属性一致性 + 经典等排覆盖」作为等效判据，而非逐行比对</td></tr>
+</table>
+
+<h2>8 · 需要你拍板的决策</h2>
+<ol>
+<li><b>运行环境</b>：WSL Ubuntu（<b>推荐</b>，Linux 工具链原生）还是 Windows 原生？</li>
+<li><b>忠实度目标节奏</b>：先 <b>L0 规则库 + L2 改进快速可用</b>（1–2 天可跑通全链路），再补 L1 mmpdb 全量复刻？还是直接上 L1？</li>
+<li><b>ChEMBL 版本/范围</b>：用 <b>22</b>（与现有 <code>chembl22_sa2.db</code> 同代、便于同口径）还是最新版？先全量还是先子集？</li>
+<li><b>对接引擎</b>：沿用 <b>Uni-Dock</b>（GPU，与历史可比）还是换 Vina/其他？</li>
+</ol>
+
+<div class="warn" style="margin-top:26px">
+<b>建议下一步</b>：先做 <b>S0 环境基线</b>（WSL 内装齐依赖 + 编译 fkcombu + Uni-Dock 单分子冒烟），约半天到一天；确认 4 项决策后进入 S1。
+在 S0 期间可并行先把 L0 规则库写出来，用于打通 B–G 链路（不阻塞大库建设）。
+</div>
+
+<p class="muted" style="margin-top:30px;font-size:12.5px">
+说明：本规划基于对 <code>D:/Gary_data/YEATS2/CReM</code> 两个 notebook 源码、SwissBioisostere 输出 CSV（1665 候选）及 SIB 官方文献的核实；标注「未随数据拷回」的脚本需在 S0/S2 重写。参数与路径均在配置中显式声明，便于复算与追溯。
+</p>
+
+</div>
+</body>
+</html>

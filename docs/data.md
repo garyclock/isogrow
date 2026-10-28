@@ -1,0 +1,71 @@
+# Data acquisition
+
+Nothing in this table is committed to the repository. Everything lands in
+`$ISOGROW_DATA` (default `<repo>/data`), which is git-ignored.
+
+| Artifact | Size | Command | Needed for |
+|---|---|---|---|
+| ChEMBL chemreps | ~279 MB | `python scripts/data/download_chemreps.py` | building the structure database |
+| ChEMBL SQLite dump | ~5.4 GB (compressed) | `python scripts/data/download_chembl_db.py` | ChEMBL logP, assay/target/PubMed metadata |
+| Activity sample (REST) | ~300 KB | `python scripts/data/fetch_activities.py --target CHEMBL203` | #Better/#Similar/#Worse, ΔpChEMBL |
+| CReM fragment DB | ~2.5 GB | `python scripts/data/get_crem_db.py --url …` or `cremdb_create` | stage B variants |
+| AutoDock Vina | ~1 MB | `python scripts/data/get_vina.py` | stage F docking |
+
+## Build sizes and resources
+
+Measured with `--num-cuts 3` (SwissBioisostere's setting), symmetric rules, 6 jobs:
+
+| Compounds | Database | `.fragdb` | Index peak RSS | Wall time |
+|---|---|---|---|---|
+| 50,000 | 6.5 GB | 0.4 GB | ~9 GB | ~25 min |
+| 150,000 | 20 GB+ (est.) | 1.2 GB | > 16 GB (aborted) | — |
+| 2.4 M (full) | not practical on a workstation | — | — | — |
+
+Practical guidance: 50k for iteration, 200k+ on a machine with ≥32 GB RAM, and expect the
+indexer — not the fragmenter — to be the memory bottleneck. `--num-cuts 1` reduces both size
+and time by roughly an order of magnitude but only indexes side-chain replacements.
+
+## When the download crawls
+
+EBI throttles single connections; we measured ~10 KB/s on one stream versus ~350 KB/s with 16
+parallel range requests. The Python downloader resumes from a partial file but uses one
+connection. For multi-GB files, either run it repeatedly (it resumes) or use a parallel
+downloader:
+
+```bash
+aria2c -x16 -s16 -k1M -c \
+  -o data/chembl/chembl_37_sqlite.tar.gz \
+  "https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/latest/chembl_37_sqlite.tar.gz"
+```
+
+Keep the `.aria2` control file: it is what makes the transfer resumable.
+
+## Versions
+
+`ChEMBL 37` is the default (`--chembl-version`). The URL pattern is
+`…/ChEMBLdb/latest/chembl_<version>_*`, so older releases are reachable by changing the
+version string. Databases are **not** portable across ChEMBL versions: rebuild rather than
+mixing a 36 database with 37 structures.
+
+## Licences
+
+* ChEMBL — CC BY-SA 4.0. Attribute and do not redistribute the dumps or databases derived from
+  them from this repository. Rebuild them locally.
+* CReM databases — distributed by the CReM authors / qsar4u; check their terms.
+* AutoDock Vina — Apache-2.0 (download from the official release, do not vendor).
+
+Details: [THIRD_PARTY.md](../THIRD_PARTY.md).
+
+## Offline / air-gapped use
+
+Copy `data/` to the target machine and export the paths explicitly:
+
+```bash
+export ISOGROW_DATA=/mnt/datasets/isogrow
+export ISOGROW_MMPDB=/opt/mmpdb/bin/mmpdb
+export ISOGROW_VINA=/opt/vina/bin/vina
+isogrow doctor
+```
+
+`isogrow doctor` prints exactly what was resolved, which is the fastest way to diagnose a
+path problem.
