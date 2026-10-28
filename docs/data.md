@@ -25,6 +25,15 @@ Practical guidance: 50k for iteration, 200k+ on a machine with ≥32 GB RAM, and
 indexer — not the fragmenter — to be the memory bottleneck. `--num-cuts 1` reduces both size
 and time by roughly an order of magnitude but only indexes side-chain replacements.
 
+## Which logP goes into the database?
+
+`isogrow build` indexes logP, tPSA and MW from RDKit. SwissBioisostere reports ChEMBL's ACD
+logP instead, which differs by ~0.5 log units on aromatic heteroatom swaps while agreeing to
+~0.08 for most chemotypes. Pass `--chembl-db <chembl_37.db>` to swap in
+`compound_properties.alogp` (batched lookups while streaming chemreps, Crippen fallback for
+ids the dump does not cover). It needs the 30 GB SQLite database but adds only a minute to the
+build.
+
 ## When the download crawls
 
 EBI throttles single connections; we measured ~10 KB/s on one stream versus ~350 KB/s with 16

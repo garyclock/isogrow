@@ -84,6 +84,16 @@ isogrow search --db data/mmpdb/chembl50k.mmpdb --query '[*:1]c1cc2ccccc2o1' --to
 linker (2 cuts) and scaffold (3 cuts) replacements. 2/3-cut rules are only reachable with
 multi-attachment fragments such as `[*:1]C(=O)Oc1ccc([*:2])cc1`.
 
+**Matching the official logP model.** By default ΔlogP comes from RDKit's Crippen
+implementation. SwissBioisostere reports ChEMBL's ACD logP, so pass the SQLite dump to index
+that instead and remove the systematic ~0.5 offset:
+
+```bash
+isogrow build --chemreps data/chembl/chembl_37_chemreps.txt.gz \
+              --chembl-db data/chembl/chembl_37/chembl_37_sqlite/chembl_37.db \
+              --out data/mmpdb/chembl50k_acd --limit 50000 --jobs 6
+```
+
 **Size warning.** The 3-cut database grows steeply: 50k compounds ≈ 6.5 GB, 150k ≈ 20 GB+.
 Plan disk and RAM accordingly; the indexer peaks around 9 GB on 50k compounds.
 
