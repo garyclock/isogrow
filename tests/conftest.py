@@ -56,8 +56,8 @@ def _write_smi_props(smi_out: Path, props_out: Path, extra_props: dict[str, floa
 def mmpdb_exe() -> str:
     exe = _mmpdb_exe()
     if not exe:
-        pytest.skip("mmpdb command line tool not installed "
-                    '(pip install "mmpdb @ git+https://github.com/rdkit/mmpdb.git")')
+        _skip_or_fail("mmpdb command line tool not installed "
+                      '(pip install "mmpdb @ git+https://github.com/rdkit/mmpdb.git")')
     return exe
 
 
