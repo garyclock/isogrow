@@ -81,5 +81,10 @@ top-k" behaviour.
 `tests/conftest.py` builds a real mmpdb database from `tests/data/tiny.smi` once per session
 (~2 MB, a few seconds), so the suite exercises the actual indexer, the actual SQL and the
 actual RDKit calls without shipping any dataset. A second, activity-aware database is built
-with synthetic pChEMBL values to test the three-way classification. Docking is skipped when no
-Vina binary is available, which keeps CI green on a clean runner.
+with synthetic pChEMBL values to test the three-way classification.
+
+CI installs **both** external engines — `fkcombu` (unpacked from its conda artifact, since the
+pipeline defaults to it) and AutoDock Vina (via `scripts/data/get_vina.py`) — and runs the whole
+suite, docking and alignment included. `ISOGROW_REQUIRE_EXTRAS=1` turns a missing tool into a
+**failure instead of a skip**, so a green run proves the default backend was actually exercised.
+Locally, without those binaries, the same tests skip and the rest still run.

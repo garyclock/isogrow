@@ -148,7 +148,8 @@ isogrow run --config config/my_run.json --align-backend mcs   # no external bina
 ```
 
 If `fkcombu` is missing the pipeline **fails immediately with install instructions** rather than
-silently aligning nothing.
+silently aligning nothing. CI installs `fkcombu` and Vina and runs the docking/alignment tests,
+so the default path is covered by the badge above.
 
 On Windows, drive a WSL install with a command string:
 
