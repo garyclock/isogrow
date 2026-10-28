@@ -37,15 +37,18 @@ jobs:
       # artifact and unpack it (it is a single static executable).
       - name: Install fkcombu (KCOMBU)
         run: |
-          set -euo pipefail
-          REL=$(curl -sL https://conda.anaconda.org/michellab/linux-64/repodata.json \
-                | python -c 'import json,sys; d=json.load(sys.stdin); print(sorted(k for k in d["packages"] if k.startswith("fkcombu"))[-1])')
-          echo "fkcombu package: $REL"
-          curl -sL -o /tmp/fkcombu.pkg "https://conda.anaconda.org/michellab/linux-64/$REL"
+          curl -fsSL -o /tmp/repodata.json https://conda.anaconda.org/michellab/linux-64/repodata.json
+          REL=$(python -c "import json;d=json.load(open('/tmp/repodata.json'));print(sorted(k for k in d.get('packages',{}) if k.startswith('fkcombu'))[-1])")
+          echo "fkcombu package: '$REL'"
+          test -n "$REL"
+          curl -fsSL -o /tmp/fkcombu.pkg "https://conda.anaconda.org/michellab/linux-64/$REL"
           mkdir -p "$HOME/.local/fkcombu"
           tar -xjf /tmp/fkcombu.pkg -C "$HOME/.local/fkcombu"
+          test -x "$HOME/.local/fkcombu/bin/fkcombu"
           echo "$HOME/.local/fkcombu/bin" >> "$GITHUB_PATH"
-          "$HOME/.local/fkcombu/bin/fkcombu" -h | head -3
+          # do not pipe into head: SIGPIPE would fail the step under pipefail
+          "$HOME/.local/fkcombu/bin/fkcombu" -h > /tmp/fk_help.txt 2>&1 || true
+          head -3 /tmp/fk_help.txt
 
       - name: Install Vina
         run: |
