@@ -1,0 +1,22 @@
+# IsoGrow runtime dependencies
+# Install with:  pip install -e ".[all]"
+# (kept as a plain list for pip install -r users and for pinned environments)
+
+# --- chemistry core ---------------------------------------------------------
+rdkit>=2024.9
+pandas>=2.0
+numpy>=1.26
+requests>=2.31
+
+# --- fragment replacement ---------------------------------------------------
+# NOTE: the PyPI distribution named "mmpdb" installs but exposes no module.
+# The real tool is in the rdkit/mmpdb repository: module `mmpdblib`, CLI `mmpdb`.
+mmpdb @ git+https://github.com/rdkit/mmpdb.git
+
+# --- growth pipeline (stages B-E) -------------------------------------------
+crem>=0.3
+meeko>=0.6
+gemmi>=0.6
+
+# --- development ------------------------------------------------------------
+pytest>=8

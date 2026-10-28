@@ -1,0 +1,13 @@
+# Normalise line endings so the fixtures and configs behave identically on
+# Windows, Linux and macOS (Vina/RDKit readers are tolerant, diffs are not).
+* text=auto eol=lf
+
+*.smi    text eol=lf
+*.sdf    text eol=lf
+*.pdbqt  text eol=lf
+*.csv    text eol=lf
+*.json   text eol=lf
+*.yml    text eol=lf
+
+*.png    binary
+*.gif    binary

@@ -1,0 +1,40 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "IsoGrow: local bioisostere search and molecular growth pipeline"
+abstract: >-
+  An open reimplementation of the SwissBioisostere fragment-replacement idea on
+  top of matched molecular pairs mined from ChEMBL, combined with an end-to-end
+  pipeline from fragment replacement to CReM variants, 3D alignment, docking and
+  ranking.
+version: 0.1.0
+date-released: 2026-10-28
+license: MIT
+authors:
+  - family-names: "garyclock"
+    given-names: ""
+repository-code: "https://github.com/garyclock/isogrow"
+keywords:
+  - bioisostere
+  - matched molecular pairs
+  - fragment replacement
+  - molecular generation
+  - docking
+references:
+  - type: article
+    title: "SwissBioisostere: a database of molecular replacements for ligand design"
+    authors:
+      - family-names: Wirth
+        given-names: Martin
+      - family-names: Zoete
+        given-names: Vincent
+      - family-names: Michielin
+        given-names: Olivier
+      - family-names: Sauer
+        given-names: Wolfgang H. B.
+    journal: "Nucleic Acids Research"
+    volume: 41
+    issue: D1
+    start: D1137
+    end: D1143
+    year: 2013
+    doi: "10.1093/nar/gkt951"

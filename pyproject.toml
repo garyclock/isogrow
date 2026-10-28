@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "isogrow"
+version = "0.1.0"
+description = "Local SwissBioisostere-style fragment replacement plus an end-to-end molecular growth and docking pipeline"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "garyclock" }]
+keywords = [
+  "cheminformatics",
+  "bioisostere",
+  "matched-molecular-pairs",
+  "mmpdb",
+  "fragment-replacement",
+  "molecular-generation",
+  "docking",
+]
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Chemistry",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+  "rdkit>=2024.9",
+  "pandas>=2.0",
+  "numpy>=1.26",
+  "requests>=2.31",
+]
+
+[project.optional-dependencies]
+# The PyPI package called "mmpdb" is not the tool: it installs but exposes no
+# module. The working distribution lives in the rdkit/mmpdb repository (module
+# name: mmpdblib, CLI: mmpdb).
+mmpdb = ["mmpdb @ git+https://github.com/rdkit/mmpdb.git"]
+pipeline = [
+  "meeko>=0.6",
+  "gemmi>=0.6",
+  "crem>=0.3",
+]
+dev = [
+  "pytest>=8",
+  "ruff>=0.6",
+]
+all = [
+  "mmpdb @ git+https://github.com/rdkit/mmpdb.git",
+  "meeko>=0.6",
+  "gemmi>=0.6",
+  "crem>=0.3",
+]
+
+[project.urls]
+Homepage = "https://github.com/garyclock/isogrow"
+
+[project.scripts]
+isogrow = "isogrow.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+  "slow: tests that need downloaded datasets or build a real database (deselect with -m 'not slow')",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B"]
+ignore = ["E501"]

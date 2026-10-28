@@ -1,0 +1,40 @@
+# ---- datasets and build artifacts (never committed) ------------------------
+# Root-anchored: tests/data/ holds small fixtures and must stay tracked.
+/data/
+/runs/
+/logs/
+/tools/
+*.mmpdb
+*.mmpdb-journal
+*.fragdb
+*.db
+*.tar.gz
+*.zip
+*.exe
+
+# ---- local / personal ------------------------------------------------------
+.workbuddy/
+swissbioisostere_recovery.*
+*.local.json
+
+# ---- python ----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+envs/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# ---- editors / OS ----------------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
