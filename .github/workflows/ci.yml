@@ -39,7 +39,7 @@ jobs:
       - name: Tests (fast suite)
         run: pytest -m "not slow"
 
-      - name: Tests (slow: needs a docking engine, installed on demand)
+      - name: Slow tests with a docking engine
         if: vars.RUN_SLOW_TESTS == 'true'
         run: |
           python scripts/data/get_vina.py
