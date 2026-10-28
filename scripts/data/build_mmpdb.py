@@ -41,6 +41,8 @@ def main() -> int:
     ap.add_argument("--max-heavies", type=int, default=60)
     ap.add_argument("--activity-table", default=None,
                     help="CSV with molecule_chembl_id,pchembl (see fetch_activities.py)")
+    ap.add_argument("--chembl-db", default=None,
+                    help="ChEMBL SQLite dump: index its alogp (ACD logP) instead of Crippen")
     ap.add_argument("--mmpdb-exe", default=None)
     args = ap.parse_args()
 
@@ -59,7 +61,8 @@ def main() -> int:
     else:
         db = chembl.build_from_chemreps(args.chemreps, prefix, limit=args.limit,
                                         jobs=args.jobs, num_cuts=args.num_cuts,
-                                        max_heavies=args.max_heavies, mmpdb_exe=exe)
+                                        max_heavies=args.max_heavies, mmpdb_exe=exe,
+                                        alogp_db=args.chembl_db)
 
     print(f"\nready: {db}\n  isogrow search --db {db} --query '[*:1]c1cc2ccccc2o1'")
     return 0

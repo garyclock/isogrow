@@ -18,6 +18,7 @@ from __future__ import annotations
 import csv
 import gzip
 import os
+import sqlite3
 from collections.abc import Iterable, Iterator
 from pathlib import Path
 
@@ -115,6 +116,65 @@ def _build_from_records(records, out_prefix: str, jobs: int, num_cuts: int,
     return db
 
 
+def load_alogp(chembl_db: os.PathLike | str, chembl_ids: Iterable[str],
+               chunk: int = 900) -> dict[str, float]:
+    """``{chembl_id: alogp}`` from a ChEMBL SQLite dump.
+
+    ChEMBL's ``compound_properties.alogp`` is the ACD logP that SwissBioisostere
+    reports, so using it removes the ~0.5 systematic offset of RDKit's Crippen
+    implementation on aromatic heteroatom swaps.
+    """
+    ids = list(chembl_ids)
+    out: dict[str, float] = {}
+    con = sqlite3.connect(f"file:{chembl_db}?mode=ro", uri=True)
+    try:
+        for start in range(0, len(ids), chunk):
+            part = ids[start:start + chunk]
+            marks = ",".join("?" * len(part))
+            sql = (
+                "SELECT md.chembl_id, cp.alogp FROM molecule_dictionary md "
+                "JOIN compound_properties cp ON cp.molregno = md.molregno "
+                f"WHERE md.chembl_id IN ({marks})"
+            )
+            for cid, alogp in con.execute(sql, part):
+                if alogp is not None:
+                    out[cid] = float(alogp)
+    finally:
+        con.close()
+    return out
+
+
+def _apply_alogp(records: list[tuple], chembl_db: str, stats: dict) -> list[tuple]:
+    """Replace the Crippen logP of a batch with ChEMBL's ACD logP."""
+    got = load_alogp(chembl_db, [r[1] for r in records])
+    out = []
+    for smiles, cid, logp, tpsa, mw in records:
+        if cid in got:
+            logp = got[cid]
+            stats["acd"] += 1
+        else:
+            stats["fallback"] += 1
+        out.append((smiles, cid, logp, tpsa, mw))
+    return out
+
+
+def with_alogp(records: Iterable[tuple], chembl_db: os.PathLike | str,
+               chunk: int = 900) -> Iterator[tuple]:
+    """Stream records, swapping RDKit Crippen logP for ChEMBL ACD logP in batches."""
+    db = str(chembl_db)
+    stats = {"acd": 0, "fallback": 0}
+    batch: list[tuple] = []
+    for rec in records:
+        batch.append(rec)
+        if len(batch) >= chunk:
+            yield from _apply_alogp(batch, db, stats)
+            batch = []
+    if batch:
+        yield from _apply_alogp(batch, db, stats)
+    print(f"[build] logP source: ChEMBL alogp for {stats['acd']} compounds, "
+          f"RDKit Crippen fallback for {stats['fallback']}")
+
+
 def build_from_chemreps(
     chemreps: os.PathLike | str,
     out_prefix: os.PathLike | str,
@@ -123,13 +183,21 @@ def build_from_chemreps(
     num_cuts: int = 3,
     max_heavies: int = 60,
     mmpdb_exe: str | None = None,
+    alogp_db: os.PathLike | str | None = None,
 ) -> Path:
-    """Fragment + index a ChEMBL chemreps dump into ``<out_prefix>.mmpdb``."""
+    """Fragment + index a ChEMBL chemreps dump into ``<out_prefix>.mmpdb``.
+
+    Pass ``alogp_db`` (the ChEMBL SQLite dump) to index ChEMBL's ACD logP instead
+    of RDKit's Crippen value.
+    """
     RDLogger.DisableLog("rdApp.*")
     out_prefix = str(out_prefix)
-    print(f"[build] reading {chemreps} (limit={limit}, max_heavies={max_heavies})")
-    return _build_from_records(
-        iter_chemreps(str(chemreps), limit, max_heavies), out_prefix, jobs, num_cuts, mmpdb_exe)
+    print(f"[build] reading {chemreps} (limit={limit}, max_heavies={max_heavies}, "
+          f"logP={'ChEMBL alogp' if alogp_db else 'RDKit Crippen'})")
+    records = iter_chemreps(str(chemreps), limit, max_heavies)
+    if alogp_db:
+        records = with_alogp(records, alogp_db)
+    return _build_from_records(records, out_prefix, jobs, num_cuts, mmpdb_exe)
 
 
 def build_from_smiles(
