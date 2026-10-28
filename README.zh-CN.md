@@ -57,7 +57,17 @@ isogrow build --smi tests/data/tiny.smi --out data/mmpdb/tiny.mmpdb
 isogrow search --db data/mmpdb/tiny.mmpdb --query '[*:1]c1cc2ccccc2o1'
 ```
 
-## 用真实数据检索
+## 从 ChEMBL 建出可检索的数据库
+
+一条命令完成「下载 → 切片段 → 建索引 → 自检」：
+
+```bash
+pip install -e ".[mmpdb,pipeline]"
+python scripts/data/build_database.py --limit 50000 --jobs 6 --out data/mmpdb/chembl50k
+# -> [3/3] verification query: [*:1]c1cc2ccccc2o1 ... search it with: isogrow search ...
+```
+
+等价的显式三步：
 
 ```bash
 python scripts/data/download_chemreps.py                 # 279 MB，全 ChEMBL 结构
@@ -65,6 +75,18 @@ isogrow build --chemreps data/chembl/chembl_37_chemreps.txt.gz \
               --out data/mmpdb/chembl50k --limit 50000 --jobs 6
 isogrow search --db data/mmpdb/chembl50k.mmpdb --query '[*:1]c1cc2ccccc2o1' --topn 25
 ```
+
+下载地址（脚本内置，列出来方便手动/镜像）：
+
+| 资源 | 链接 |
+|---|---|
+| ChEMBL 37 结构 | `https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/latest/chembl_37_chemreps.txt.gz` |
+| ChEMBL 37 SQLite | `https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/latest/chembl_37_sqlite.tar.gz` |
+| 校验值 / 其它版本 | `https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/latest/checksums.txt` · `https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/` |
+| CReM 片段库 / Vina | `http://www.qsar4u.com/pages/crem.php` · `https://github.com/ccsb-scripps/AutoDock-Vina/releases` |
+
+**完全不想下 ChEMBL？** 直接用自有 SMILES 建库：`python scripts/data/build_database.py --smi my_series.smi`。
+规模/耗时对照与 `--limit`、`--num-cuts` 怎么选：见 [docs/data.md](docs/data.md)。
 
 默认 `--num-cuts 3`，与 SwissBioisostere 一致（1 刀=侧链、2 刀=linker、3 刀=骨架）。
 多附件点片段（如 `[*:1]C(=O)Oc1ccc([*:2])cc1`）必须建 2/3 刀库才查得到。

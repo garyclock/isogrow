@@ -71,7 +71,17 @@ isogrow search --db data/mmpdb/tiny.mmpdb --query '[*:1]c1cc2ccccc2o1'
          [*:1]c1ccco1          1   -1.15     0.00 -50.06
 ```
 
-## Search real data
+## Build a searchable database from ChEMBL
+
+One command downloads the structures, fragments them, indexes them and verifies the result:
+
+```bash
+pip install -e ".[mmpdb,pipeline]"
+python scripts/data/build_database.py --limit 50000 --jobs 6 --out data/mmpdb/chembl50k
+# -> [3/3] verification query: [*:1]c1cc2ccccc2o1  ...  search it with: isogrow search ...
+```
+
+The equivalent explicit steps:
 
 ```bash
 python scripts/data/download_chemreps.py                 # 279 MB, all ChEMBL structures
@@ -79,6 +89,19 @@ isogrow build --chemreps data/chembl/chembl_37_chemreps.txt.gz \
               --out data/mmpdb/chembl50k --limit 50000 --jobs 6
 isogrow search --db data/mmpdb/chembl50k.mmpdb --query '[*:1]c1cc2ccccc2o1' --topn 25
 ```
+
+Source URLs (the scripts use these; listed so you can fetch manually or mirror them):
+
+| Artifact | URL |
+|---|---|
+| ChEMBL 37 structures | `https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/latest/chembl_37_chemreps.txt.gz` |
+| ChEMBL 37 SQLite | `https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/latest/chembl_37_sqlite.tar.gz` |
+| Checksums / other releases | `https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/latest/checksums.txt` · `https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/` |
+| CReM fragment DB / Vina | `http://www.qsar4u.com/pages/crem.php` · `https://github.com/ccsb-scripps/AutoDock-Vina/releases` |
+
+**No ChEMBL at all?** Build from any SMILES file: `python scripts/data/build_database.py --smi my_series.smi`.
+Full details, size/time tables and the "which `--limit`/`--num-cuts`" decision:
+[docs/data.md](docs/data.md).
 
 `--num-cuts 3` (the default) matches SwissBioisostere: it indexes side-chain (1 cut),
 linker (2 cuts) and scaffold (3 cuts) replacements. 2/3-cut rules are only reachable with
