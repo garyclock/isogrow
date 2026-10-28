@@ -213,7 +213,8 @@ def build_parser() -> argparse.ArgumentParser:
     b.add_argument("--activity-table", default=None,
                    help="CSV with molecule_chembl_id,pchembl to add ΔpChEMBL")
     b.add_argument("--chembl-db", default=None,
-                   help="ChEMBL SQLite dump; index its alogp (ACD) instead of RDKit Crippen")
+                   help="ChEMBL SQLite dump: index its stored alogp instead of recomputing "
+                        "Crippen (identical for ChEMBL >= 24, where alogp is RDKit-computed)")
     b.add_argument("--mmpdb-exe", default=None)
     b.set_defaults(func=cmd_build)
 

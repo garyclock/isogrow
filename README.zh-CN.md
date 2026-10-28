@@ -107,7 +107,7 @@ isogrow run --config config/my_run.json
 | 覆盖全部 1663 个候选 | 6.1 % | 受库规模限制（5 万≈ChEMBL 的 1/48） |
 | Δ 误差（tPSA）中位数 / 均值 | **0.00 / 0.13** | 基本精确；3 条官方自相矛盾的行把均值拉高 |
 | Δ 误差（MW）中位数 / 均值 | **0.00 / 1.81** | 同样那 3 行（例如官方给出 ΔMW −78.7，而实际只变 −4.6） |
-| Δ 误差（logP）中位数 / 均值 | **0.50 / 0.51** | 是**系统性偏移**而非随机误差：Crippen vs ChEMBL ACD |
+| Δ 误差（logP）中位数 / 均值 | **0.50 / 0.51** | 系统性：官方用 ACD/Labs logP，公开 ChEMBL 里没有这个值 |
 
 阶段 B 与原 notebook 的历史产物逐分子比对：CReM 变体集 **100 % 重合**（50/50、53/53），
 RDKit 对齐 RMSD 0.06 Å。细节见 [docs/benchmark.md](docs/benchmark.md)。
@@ -115,9 +115,10 @@ RDKit 对齐 RMSD 0.06 Å。细节见 [docs/benchmark.md](docs/benchmark.md)。
 ## 已知局限（引用数字前请先读）
 
 * **覆盖率随库规模线性变化**：5 万子集只能复现 240 万分子资源的约 6%；生产用请建更大库。
-* **ΔlogP 存在 +0.50 的系统偏移**：我们用 RDKit Crippen，官方报的是 ChEMBL ACD logP。
+* **ΔlogP 比官方低 0.50**（sd 0.29，r = 0.92）。官方用 ACD/Labs logP，而 ChEMBL 自 24 版起
+  `alogp` 就是 RDKit 算的、ACD 值不在公开 dump 里——我们分别建了两种库验证过，**这个差距无法用公开数据消除**。
   ΔtPSA / ΔMW 在 102 个候选里 99 个精确吻合（中位误差 0.00）——**看中位数**，少数官方异常行会把均值毁掉；
-  `report.json` 两者都给。
+  `report.json` 两者都给。加 +0.5 常数校准可把 logP 误差从 0.51 降到 0.22，但**默认不启用**（见 docs/benchmark.md）。
 * **success score 是代理公式**（净提升率 × log(对数)），官方还加权靶点/靶点类别/Murcko 骨架多样性。
 * **KCOMBU 换成 RDKit MCS 对齐**、py2 AutoDockTools 换成 Meeko：分子身份不变（逐条核过重原子数），
   构象几何可能与原 KCOMBU 输出略有差别。

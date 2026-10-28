@@ -27,12 +27,16 @@ and time by roughly an order of magnitude but only indexes side-chain replacemen
 
 ## Which logP goes into the database?
 
-`isogrow build` indexes logP, tPSA and MW from RDKit. SwissBioisostere reports ChEMBL's ACD
-logP instead, which differs by ~0.5 log units on aromatic heteroatom swaps while agreeing to
-~0.08 for most chemotypes. Pass `--chembl-db <chembl_37.db>` to swap in
-`compound_properties.alogp` (batched lookups while streaming chemreps, Crippen fallback for
-ids the dump does not cover). It needs the 30 GB SQLite database but adds only a minute to the
-build.
+`isogrow build` indexes RDKit's Crippen logP, tPSA and MW. `--chembl-db <chembl_37.db>` swaps
+the logP for ChEMBL's stored `compound_properties.alogp` instead (batched lookups while
+streaming chemreps, Crippen fallback for ids the dump does not cover; adds about a minute).
+
+**This does not reproduce the SwissBioisostere ΔlogP column.** ChEMBL stopped using ACD/Labs
+for `ALOGP` at release 24 — since then it is computed with RDKit — while the ACD value only
+lives in fields that are not part of the public dump. We verified it empirically: the Crippen
+build and the alogp build return the identical candidate set and identical deltas. The
+`--chembl-db` option is therefore a no-op for ChEMBL ≥ 24 and only matters for older dumps.
+See [benchmark.md](benchmark.md) for the measured offset.
 
 ## When the download crawls
 

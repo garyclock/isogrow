@@ -42,7 +42,8 @@ def main() -> int:
     ap.add_argument("--activity-table", default=None,
                     help="CSV with molecule_chembl_id,pchembl (see fetch_activities.py)")
     ap.add_argument("--chembl-db", default=None,
-                    help="ChEMBL SQLite dump: index its alogp (ACD logP) instead of Crippen")
+                    help="ChEMBL SQLite dump: index its stored alogp (RDKit-computed since "
+                         "ChEMBL 24, so identical to recomputing Crippen)")
     ap.add_argument("--mmpdb-exe", default=None)
     args = ap.parse_args()
 

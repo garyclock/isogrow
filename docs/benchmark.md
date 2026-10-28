@@ -38,13 +38,36 @@ local database built from a **50,000-compound** ChEMBL 37 subset (`--num-cuts 3`
   `Clc1ncccc1[*:1]` reports ΔMW −78.71 although swapping a benzofuran for a chloropyridine
   changes MW by ≈ −4.6. **Report the median, not the mean** — this is why `report.json` now
   carries `delta_median` and `delta_p90` next to `delta_mae`.
-* **ΔlogP is offset by a constant +0.50** (median exactly 0.500, p90 0.86 — a shift, not
-  scatter). We compute RDKit Crippen logP; SwissBioisostere reports ChEMBL's ACD logP. A check
-  over 3000 ChEMBL molecules finds `alogp − Crippen`: median 0.00, mean +0.06, |offset| 0.08
-  — i.e. the two models agree for most chemotypes but diverge by ~0.5 on aromatic
-  heteroatom swaps, which is exactly the class being benchmarked here. Rebuilding the
-  database with the `alogp` column from the ChEMBL SQLite dump should remove the offset;
-  that rebuild has not been run yet, so treat the ΔlogP column as *model dependent*.
+* **ΔlogP is 0.50 log units lower than the export, systematically.** Ours − official:
+  mean −0.498, median −0.500, sd 0.289; a linear fit gives
+  `official ≈ 1.09·ours + 0.54` with r = 0.92 (r² = 0.84). This is a property *definition*
+  difference, not scatter — see the next section.
+
+### Why the ΔlogP gap cannot be closed locally
+
+The obvious fix — index ChEMBL's own `alogp` instead of recomputing Crippen — does not work,
+and we can show exactly why:
+
+1. Since **ChEMBL 24** the `ALOGP` column is **computed with RDKit**, not ACD/Labs (the ACD
+   values moved to `ACD_LOGP`, which is not in the public dump). Source: ChEMBL NAR paper,
+   "Calculated properties".
+2. So we built a second 50k database with `--chembl-db` and re-ran the identical benchmark.
+   Everything is unchanged:
+
+   | | Crippen build | alogp build |
+   |---|---|---|
+   | local candidates | 141 | 141 |
+   | overlap / precision / recall@50 | 102 / 72.3 % / 64 % | 102 / 72.3 % / 64 % |
+   | ΔlogP MAE | 0.507 | 0.510 |
+   | ΔlogP median error | 0.50 | 0.50 |
+
+3. SwissBioisostere (2013) reports ACD/Labs logP, which needs a commercial licence. The gap is
+   therefore **not removable with public data**.
+
+Practical consequence: a constant **+0.5 calibration** halves the error (MAE 0.51 → 0.22) and
+is what we would apply before ranking on ΔlogP. It is deliberately **not** applied by default —
+it is a correction learned from one reference export, so treat it as a display choice with a
+stated provenance, not as ground truth.
 
 ## 2 · Stage B (CReM variants) vs a previous run of the original notebook
 

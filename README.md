@@ -84,14 +84,19 @@ isogrow search --db data/mmpdb/chembl50k.mmpdb --query '[*:1]c1cc2ccccc2o1' --to
 linker (2 cuts) and scaffold (3 cuts) replacements. 2/3-cut rules are only reachable with
 multi-attachment fragments such as `[*:1]C(=O)Oc1ccc([*:2])cc1`.
 
-**Matching the official logP model.** By default ΔlogP comes from RDKit's Crippen
-implementation. SwissBioisostere reports ChEMBL's ACD logP, so pass the SQLite dump to index
-that instead and remove the systematic ~0.5 offset:
+**About ΔlogP.** We index RDKit's Crippen value. ChEMBL's own `alogp` column has been
+computed with RDKit since ChEMBL 24, so indexing it instead changes nothing — we built both
+databases and the candidate sets and deltas are identical. SwissBioisostere reports ACD/Labs
+logP, which is **not** in the public ChEMBL dump, so our ΔlogP sits **0.50 log units below**
+the export on average (sd 0.29, r = 0.92). A +0.5 calibration halves the error (0.51 → 0.22)
+but is not applied by default: [docs/benchmark.md](docs/benchmark.md) shows the evidence.
 
 ```bash
+# optional: index ChEMBL's stored alogp instead of recomputing Crippen
+# (identical for ChEMBL >= 24; useful for older dumps where alogp was ACD-computed)
 isogrow build --chemreps data/chembl/chembl_37_chemreps.txt.gz \
               --chembl-db data/chembl/chembl_37/chembl_37_sqlite/chembl_37.db \
-              --out data/mmpdb/chembl50k_acd --limit 50000 --jobs 6
+              --out data/mmpdb/chembl50k --limit 50000 --jobs 6
 ```
 
 **Size warning.** The 3-cut database grows steeply: 50k compounds ≈ 6.5 GB, 150k ≈ 20 GB+.
@@ -136,7 +141,7 @@ Query `[*:1]c1cc2ccccc2o1` (benzofuran), 50k-compound database:
 | Coverage of all 1663 candidates | 6.1 % | bounded by database size (50k ≈ 1/48 of ChEMBL) |
 | Δ error, tPSA — median / mean | **0.00 / 0.13** | exact; three inconsistent official rows inflate the mean |
 | Δ error, MW — median / mean | **0.00 / 1.81** | same three rows (e.g. an official ΔMW of −78.7 for a −4.6 change) |
-| Δ error, logP — median / mean | **0.50 / 0.51** | a systematic offset, not scatter: Crippen vs ChEMBL ACD |
+| Δ error, logP — median / mean | **0.50 / 0.51** | systematic: the service reports ACD/Labs logP, absent from public ChEMBL |
 
 Stage B was verified end-to-end against a previous run of the original notebook: the CReM
 variant sets matched **100 %** (50/50 and 53/53 molecules), and the RDKit alignment RMSD was
@@ -146,10 +151,11 @@ variant sets matched **100 %** (50/50 and 53/53 molecules), and the RDKit alignm
 
 * **Coverage scales with the database.** A 50k subset reproduces ~6 % of a 2.4M-compound
   resource. Build a bigger database for production use; the method is not the bottleneck.
-* **ΔlogP carries a systematic +0.50 offset**, because we use RDKit Crippen while
-  SwissBioisostere reports ChEMBL's ACD logP. ΔtPSA and ΔMW agree to rounding on 99 of 102
-  candidates (median error 0.00) — always look at the median, since a few inconsistent
-  official rows wreck the mean. `report.json` reports both.
+* **ΔlogP sits 0.50 log units below the export** (sd 0.29, r = 0.92). SwissBioisostere reports
+  ACD/Labs logP; ChEMBL's own `alogp` has been RDKit-computed since release 24, so this gap
+  cannot be closed with public data (we built both variants to prove it). ΔtPSA and ΔMW agree
+  to rounding on 99 of 102 candidates (median error 0.00) — always look at the median, since a
+  few inconsistent official rows wreck the mean. `report.json` reports both.
 * **The success score is a proxy** — net-improvement rate × log(pairs). SwissBioisostere also
   weights target/target-class/Murcko-scaffold diversity, which needs the full activity tables.
 * **KCOMBU is replaced by RDKit MCS alignment**, and py2 AutoDockTools by Meeko. Molecule

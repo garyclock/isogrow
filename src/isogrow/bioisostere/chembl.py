@@ -120,9 +120,11 @@ def load_alogp(chembl_db: os.PathLike | str, chembl_ids: Iterable[str],
                chunk: int = 900) -> dict[str, float]:
     """``{chembl_id: alogp}`` from a ChEMBL SQLite dump.
 
-    ChEMBL's ``compound_properties.alogp`` is the ACD logP that SwissBioisostere
-    reports, so using it removes the ~0.5 systematic offset of RDKit's Crippen
-    implementation on aromatic heteroatom swaps.
+    Note: since ChEMBL 24 this column is computed with **RDKit**, not ACD/Labs, so for modern
+    releases it equals a locally recomputed Crippen value. It is kept because older dumps
+    (before 24) store a genuine ACD logP, and because indexing a stored property avoids
+    recomputation. It does *not* reproduce the SwissBioisostere ΔlogP column — see
+    ``docs/benchmark.md``.
     """
     ids = list(chembl_ids)
     out: dict[str, float] = {}
