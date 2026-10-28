@@ -1,0 +1,15 @@
+O=C(Nc1ccccc1)c1cc2ccccc2o1 m1
+O=C(Nc1ccccc1)c1cc2ccccc2s1 m2
+O=C(Nc1ccccc1)c1cc2ccccc2[nH]1 m3
+O=C(Nc1ccccc1)c1ccccc1 m4
+O=C(Nc1ccccc1)c1ccc2ccccc2c1 m5
+O=C(Nc1ccccc1)c1cccs1 m6
+O=C(Nc1ccccc1)c1ccco1 m7
+O=C(Nc1ccccc1)c1cccnc1 m8
+O=C(Nc1ccccc1)c1ccc(OC)cc1 m9
+O=C(Nc1ccc(F)cc1)c1cc2ccccc2o1 m10
+O=C(Nc1ccc(F)cc1)c1cc2ccccc2s1 m11
+O=C(Nc1ccc(F)cc1)c1ccccc1 m12
+O=C(Nc1ccc(Cl)cc1)c1cc2ccccc2o1 m13
+O=C(Nc1ccc(Cl)cc1)c1ccccc1 m14
+O=C(Nc1ccc(F)cc1)c1ccc(OC)cc1 m15

@@ -1,0 +1,31 @@
+{
+  "_comment": "Use a SwissBioisostere CSV export directly as the input layer (same downstream stages).",
+  "name": "example_official_csv",
+  "source": "official_csv",
+  "csv_path": "${ISOGROW_DATA}/inputs/swissbioisostere_export.csv",
+  "logp_range": [-10, 10],
+  "tpsa_range": [-300, 300],
+  "mw_range": [-200, 80],
+  "max_candidates": 5,
+  "variants_per_candidate": 6,
+  "crem_db": "${ISOGROW_DATA}/crem/chembl.db",
+  "crem": {
+    "radius": 2,
+    "min_size": 0,
+    "max_size": 0,
+    "min_inc": -2,
+    "max_inc": 2,
+    "replace_cycles": false,
+    "max_replacements": 20,
+    "protect_H": true
+  },
+  "ref_ligand": "tests/data/reference_ligand.sdf",
+  "receptor": "tests/data/receptor.pdbqt",
+  "box_padding": 8.0,
+  "docking_backend": "vina",
+  "dock": {
+    "exhaustiveness": 4,
+    "cpu": 4
+  },
+  "out": "runs/example_official_csv"
+}
